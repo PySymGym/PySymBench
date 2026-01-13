@@ -1,36 +1,35 @@
-FROM --platform=linux/arm64 ubuntu:22.04
+FROM ubuntu:24.04
 
-
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Etc/UTC
 
 WORKDIR /workspace
 
 RUN apt update && \
-    apt install -y --no-install-recommends \
+    apt install -y \
         git \
-        curl \
-        ca-certificates \
-        gnupg \
         software-properties-common \
+        ca-certificates \
+        curl \
+        gnupg && \
+    add-apt-repository ppa:dotnet/backports && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt update && \
+    apt install -y \
         build-essential \
+        dotnet-sdk-7.0 \
+        dotnet-sdk-9.0 \
         cmake \
         clang \
         maven \
-        locales \
-        lsb-release \
-        apt-transport-https && \
-    curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft.gpg && \
-    echo "deb [arch=arm64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" > /etc/apt/sources.list.d/microsoft-prod.list && \
-    apt update && \
-    apt install -y \
-        dotnet-sdk-7.0 \
-        dotnet-sdk-8.0 \
         python3.11 \
         python3.11-venv \
         python3.11-distutils && \
-    locale-gen en_US.UTF-8 && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+
+RUN apt update && apt install -y libz3-dev
 
 ENV LANG=en_US.UTF-8 \
     LANGUAGE=en_US:en \
@@ -90,17 +89,28 @@ RUN dotnet remove GameServers/VSharp/VSharp.Explorer/VSharp.Explorer.fsproj \
     package Microsoft.ML.OnnxRuntime.Gpu --no-restore || true \
 
 RUN dotnet add GameServers/VSharp/VSharp.Explorer/VSharp.Explorer.fsproj \
-    package Microsoft.ML.OnnxRuntime --version 1.20.0 --no-restore \
+    package Microsoft.ML.OnnxRuntime --version 1.20.0 --no-restore
 
-RUN dotnet publish VSharp.ML.GameServer.Runner/VSharp.ML.GameServer.Runner.fsproj \
-    -c Release \
-    -r linux-arm64 \
-    --self-contained true
+RUN dotnet build VSharp.ML.GameServer.Runner -c Release
 
 WORKDIR /workspace/PySymGym/maps/DotNet/Maps
 
 RUN dotnet build Root -c Release -maxcpucount:1
 
-WORKDIR /workspace/PySymGym
+WORKDIR /workspace/
+
+#TODO: extract these commands into a test script
+WORKDIR /workspace/PySymGym/tools/runstrat
+
+RUN mkdir -p artifacts
+
+WORKDIR /workspace/PySymGym/tools/runstrat/resources
+
+RUN dotnet build ForTests -c Release
+
+WORKDIR /workspace/PySymGym/tools/runstrat
+RUN poetry run pytest tests -sv  \
+    -o log_file="artifacts/runstrat.log" \
+    -o log_file_level="DEBUG"
 
 CMD ["bash"]
