@@ -209,3 +209,7 @@ __marimo__/
 #IDE
 .idea/
 .DS_Store
+
+# runstrat artifacts and config
+backend/results/artifacts_run
+backend/launch_info.csv
