@@ -99,20 +99,6 @@ RUN dotnet build Root -c Release -maxcpucount:1
 
 WORKDIR /workspace/
 
-#TODO: extract these commands into a test script
-WORKDIR /workspace/PySymGym/tools/runstrat
-
-RUN mkdir -p artifacts
-
-WORKDIR /workspace/PySymGym/tools/runstrat/resources
-
-RUN dotnet build ForTests -c Release
-
-#WORKDIR /workspace/PySymGym/tools/runstrat
-#RUN poetry run pytest tests -sv  \
-#    -o log_file="artifacts/runstrat.log" \
-#    -o log_file_level="DEBUG"
-
 WORKDIR /workspace/PySymGym/tools/runstrat
 
 ENTRYPOINT ["poetry", "run", "python3", "runstrat.py"]
