@@ -213,3 +213,12 @@ __marimo__/
 # runstrat artifacts and config
 backend/results/artifacts_run
 backend/launch_info.csv
+
+# methods extractor
+json_parser.py
+
+#Frontend
+node_modules/
+frontend/.gitignore
+frontend/README.md
+.env*
