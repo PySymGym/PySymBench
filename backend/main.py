@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 
-from backend.methods_parser import methods_parser
+# from backend.methods_parser import methods_parser
 
 app = FastAPI()
 
@@ -43,20 +43,12 @@ async def upload_file(
         while content := file.file.read(1024 * 1024):
             f.write(content)
 
-    with open(EMAIL_FILE, "a") as f:
+    with open(EMAIL_FILE, "w") as f:
         f.write(email + "\n")
 
-    with open(METHODS_FILE, "r+") as f:
-        try:
-            data = json.load(f)
-            if not isinstance(data, list):
-                data = []
-        except Exception:
-            data = []
-        methods = methods_parser(methods_list)
-        data.append(methods)
-        f.seek(0)
-        json.dump(data, f, indent=2)
+    with open(METHODS_FILE, "w") as f:
+        # methods = methods_parser(methods_list)
+        json.dump(methods_list, f, indent=2)
         f.truncate()
 
     return {
