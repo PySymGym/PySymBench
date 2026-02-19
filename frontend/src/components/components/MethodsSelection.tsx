@@ -1,34 +1,34 @@
 import React, { useState } from 'react';
 import { TreeSelect } from 'antd';
-import { METHODS } from './Methods'
+import { METHODS } from './Methods';
 
 const { SHOW_PARENT } = TreeSelect;
 
-const treeData = METHODS;
+interface MethodsSelectionProps {
+    onChange: (methods: string[]) => void;
+}
 
-const MethodsSelection: React.FC = () => {
-    const [value, setValue] = useState();
+const MethodsSelection: React.FC<MethodsSelectionProps> = ({ onChange }) => {
+    const [value, setValue] = useState<string[]>([]);
 
-    const onChange = (newValue: string[]) => {
-        console.log('onChange ', newValue);
+    const handleChange = (newValue: string[]) => {
         setValue(newValue);
+        onChange(newValue);
     };
 
-    const tProps = {
-        treeData,
-        value,
-        onChange,
-        treeCheckable: true,
-        showCheckedStrategy: SHOW_PARENT,
-        placeholder: 'Please select methods',
-        style: {
-            width: '100%',
-        },
-        maxTagCount: 3,
-        maxTagPlaceholder: (omittedValues: any[]) => `+${omittedValues.length} selected`,
-    };
-
-    return <TreeSelect {...tProps} />;
+    return (
+        <TreeSelect
+            treeData={METHODS}
+            value={value}
+            onChange={handleChange}
+            treeCheckable
+            showCheckedStrategy={SHOW_PARENT}
+            placeholder="Please select methods"
+            style={{ width: '100%' }}
+            maxTagCount={2}
+            maxTagPlaceholder={(omittedValues) => `+${omittedValues.length} selected`}
+        />
+    );
 };
 
 export default MethodsSelection;

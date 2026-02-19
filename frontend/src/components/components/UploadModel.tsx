@@ -5,7 +5,11 @@ import { message, Upload } from 'antd';
 
 const { Dragger } = Upload;
 
-const UploadModel: React.FC = () => {
+interface UploadModelProps {
+    onFileChange: (file: UploadFile | null) => void;
+}
+
+const UploadModel: React.FC<UploadModelProps> = ({ onFileChange }) => {
     const [fileList, setFileList] = useState<UploadFile[]>([]);
 
     const props: UploadProps = {
@@ -15,17 +19,11 @@ const UploadModel: React.FC = () => {
         fileList,
         onChange(info) {
             const newFileList = info.fileList.slice(-1);
-
             setFileList(newFileList);
-
+            onFileChange(newFileList[0] || null);
             const { status } = info.file;
             if (status !== 'uploading') {
                 console.log(info.file, info.fileList);
-            }
-            if (status === 'done') {
-                message.success(`${info.file.name} file uploaded successfully.`);
-            } else if (status === 'error') {
-                message.error(`${info.file.name} file upload failed.`);
             }
         },
         onDrop(e) {
@@ -36,9 +34,16 @@ const UploadModel: React.FC = () => {
                 message.warning('You can only upload one file.');
                 return Upload.LIST_IGNORE;
             }
-            return true;
+            if (file.name.split('.').pop()?.toLowerCase() !== 'onnx') {
+                message.error('Only .onnx files are allowed!');
+                return Upload.LIST_IGNORE;
+            }
+            return false;
         },
-        action: 'http://localhost:8000/api/upload',
+        onRemove() {
+            setFileList([]);
+            onFileChange(null);
+        },
     };
 
     return (
