@@ -70,7 +70,10 @@ const ComparisonForm: React.FC = () => {
             <Form.Item
                 label="Email"
                 name="email"
-                rules={[{ required: true, message: 'Enter email address' }]}
+                rules={[
+                    { required: true, message: 'Enter email address' },
+                    { type: 'email', message: 'Enter a valid email address' }
+                ]}
             >
                 <Input />
             </Form.Item>
