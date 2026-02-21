@@ -135,7 +135,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+backend/.env
 .envrc
 .venv
 env/
@@ -211,14 +211,13 @@ __marimo__/
 .DS_Store
 
 # runstrat artifacts and config
-backend/results/artifacts_run
-backend/launch_info.csv
+backend/results/
+backend/uploads
 
 # methods extractor
-json_parser.py
+data_json_parser.py
 
 #Frontend
 node_modules/
 frontend/.gitignore
 frontend/README.md
-.env*

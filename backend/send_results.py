@@ -11,6 +11,8 @@ def send_folder_by_email(
         folder_path: str,
         from_email: str,
         from_password: str,
+        experiment_name: str,
+        model_name: str,
 ):
     folder = Path(folder_path)
     if not folder.exists():
@@ -25,8 +27,19 @@ def send_folder_by_email(
     msg = EmailMessage()
     msg["From"] = from_email
     msg["To"] = to_email
-    msg["Subject"] = "Results"
-    msg.set_content("Your results are in the attached archive.")
+    msg["Subject"] = f"Results of {experiment_name} with {model_name[:-5]}"
+
+    message = (
+        f"\n\n"
+        f"The results of the experiment '{experiment_name}' using the model '{model_name[:-5]}' are ready. "
+        f"Please find the details in the attached ZIP file.\n\n"
+        f"Contents of the ZIP:\n"
+        f" - Model run results: artifact_run_ai folder\n"
+        f" - Baseline run results: artifact_run_baseline folder\n"
+        f" - Comparison with baseline: compstrat_results folder\n\n"
+    )
+
+    msg.set_content(message)
 
     with open(zip_path, "rb") as f:
         msg.add_attachment(
@@ -38,11 +51,13 @@ def send_folder_by_email(
 
     context = ssl.create_default_context()
 
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
-        server.ehlo()
-        server.starttls(context=context)
-        server.ehlo()
-        server.login(from_email, from_password)
-        server.send_message(msg)
-
-    os.remove(zip_path)
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    finally:
+        if zip_path.exists():
+            os.remove(zip_path)

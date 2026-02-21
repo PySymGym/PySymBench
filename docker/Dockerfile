@@ -68,5 +68,5 @@ RUN dotnet build VSharp.ML.GameServer.Runner -c Release
 WORKDIR /workspace/PySymGym/maps/DotNet/Maps
 RUN dotnet build Root -c Release -maxcpucount:1
 
-WORKDIR /workspace/PySymGym/tools/runstrat
-ENTRYPOINT ["poetry", "run", "python3", "runstrat.py"]
+WORKDIR /workspace/PySymGym/tools
+ENTRYPOINT ["poetry", "run", "python3"]

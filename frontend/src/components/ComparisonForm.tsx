@@ -7,6 +7,7 @@ const { Title } = Typography;
 
 interface FieldType {
     email: string;
+    experiment: string;
 }
 
 const ComparisonForm: React.FC = () => {
@@ -25,6 +26,7 @@ const ComparisonForm: React.FC = () => {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('experiment', values.experiment);
         formData.append('email', values.email);
         formData.append('methods', JSON.stringify(methods));
 
@@ -58,6 +60,16 @@ const ComparisonForm: React.FC = () => {
             <Title level={2} style={{ textAlign: 'center' }}>
                 Comparison of the model with the baseline
             </Title>
+
+            <Form.Item
+                label="Your experiment name"
+                name="experiment"
+                rules={[
+                    { required: true, message: 'Enter experiment name' },
+                ]}
+            >
+                <Input />
+            </Form.Item>
 
             <Form.Item label={null} style={{ textAlign: 'center' }}>
                 <UploadModel onFileChange={(f) => setFile(f?.originFileObj || null)} />
