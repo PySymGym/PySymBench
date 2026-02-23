@@ -29,7 +29,7 @@ class DockerRunner(ABC):
 
     @staticmethod
     def _get_path(path: str) -> str:
-        return os.path.abspath(path)
+        return os.path.abspath("backend/" + path)
 
 
 class RunstratBaseline(DockerRunner):
@@ -121,3 +121,9 @@ class Compstrat(DockerRunner):
             "--savedir",
             "/workspace/PySymGym/tools/compstrat/results",
         ]
+
+
+def run_pipeline() -> None:
+    RunstratBaseline().run()
+    RunstratAI().run()
+    Compstrat().run()

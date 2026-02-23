@@ -7,19 +7,15 @@ class Methods:
         with open(data_filepath, "r") as f:
             data = json.load(f)
 
-        self.methods = defaultdict(list)
+        self.dll_methods = defaultdict(list)
         groups = defaultdict(list)
         for item in data:
             groups[item["AssemblyFullName"]].append(item)
-            self.methods[item["AssemblyFullName"]] = []
+            self.dll_methods[item["AssemblyFullName"]] = []
 
         tree = []
         for assembly, items in groups.items():
-            node = {
-                "title": assembly[:-4],
-                "value": assembly,
-                "children": []
-            }
+            node = {"title": assembly[:-4], "value": assembly, "children": []}
             seen_children = set()
             for child in items:
                 name = child["NameOfObjectToCover"]
@@ -27,11 +23,8 @@ class Methods:
                     continue
                 seen_children.add(name)
                 dll_method = f"{assembly},{name}"
-                self.methods[assembly].append(dll_method)
-                child_node = {
-                    "title": name,
-                    "value": dll_method
-                }
+                self.dll_methods[assembly].append(dll_method)
+                child_node = {"title": name, "value": dll_method}
                 node["children"].append(child_node)
             tree.append(node)
 
@@ -39,11 +32,11 @@ class Methods:
             f.write("export const METHODS = ")
             json.dump(tree, f, indent=4)
 
-    def get_methods_list(self, selection_list):
+    def get_methods_from_selection(self, selection_list):
         selected_methods = []
         for item in selection_list:
-            if item in self.methods.keys():
-                selected_methods.extend(self.methods[item])
+            if item in self.dll_methods.keys():
+                selected_methods.extend(self.dll_methods[item])
             else:
                 selected_methods.append(item)
         return selected_methods

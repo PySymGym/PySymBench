@@ -2,18 +2,28 @@ import os
 import zipfile
 import smtplib
 import ssl
-from email.message import EmailMessage
+from dotenv import load_dotenv
 from pathlib import Path
+from email.message import EmailMessage
+
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Environment variable {name} is not set")
+    return value
 
 
 def send_folder_by_email(
-        to_email: str,
-        folder_path: str,
-        from_email: str,
-        from_password: str,
-        experiment_name: str,
-        model_name: str,
+    to_email: str,
+    folder_path: str,
+    experiment_name: str,
+    model_name: str,
 ):
+    load_dotenv()
+    from_email = require_env("EMAIL")
+    from_password = require_env("APP_PASSWORD")
+
     folder = Path(folder_path)
     if not folder.exists():
         raise ValueError(f"Folder not found: {folder_path}")

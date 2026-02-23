@@ -1,33 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import os
-import json
-import csv
-import shutil
 
-from tools_runner.docker_runner import RunstratBaseline, RunstratAI, Compstrat
-from methods.methods import Methods
-from send_results import send_folder_by_email
+from backend.utils.docker_runner import run_pipeline
+from backend.utils.data_uploader import handle_upload
+from backend.utils.methods_handler import Methods
+from backend.utils.results_sender import send_folder_by_email
+from backend.config.paths import RESULTS_DIR, DATASET_FILE, METHODS_TS_FILE
 
-load_dotenv()
-
-RESOURCES_DIR = "resources"
-os.makedirs(RESOURCES_DIR, exist_ok=True)
-DATASET_FILE = os.path.join(RESOURCES_DIR, "dataset.json")
-
-frontend_methods_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "frontend",
-    "src",
-    "components",
-    "components",
-    "Methods.ts",
-)
-
-dataset_methods = Methods(
-    data_filepath=DATASET_FILE, output_filepath=frontend_methods_path
-)
+dataset_methods = Methods(data_filepath=DATASET_FILE, output_filepath=METHODS_TS_FILE)
 
 app = FastAPI()
 
@@ -38,67 +18,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-METHODS_FILE = os.path.join(UPLOAD_DIR, "launch_info.csv")
-RESULTS_DIR = os.path.join("results")
-
-if not os.path.exists(METHODS_FILE):
-    with open(METHODS_FILE, "w") as f:
-        json.dump([], f)
-
 
 @app.post("/api/upload")
 async def upload_file(
-        file: UploadFile = File(...),
-        email: str = Form(...),
-        methods: str = Form(...),
-        experiment: str = Form(...),
+    file: UploadFile = File(...),
+    email: str = Form(...),
+    methods: str = Form(...),
+    experiment: str = Form(...),
 ):
-    try:
-        methods_list = json.loads(methods)
-        if not isinstance(methods_list, list):
-            methods_list = []
-    except Exception:
-        methods_list = []
+    handle_upload(file, methods, dataset_methods)
 
-    file_location = os.path.join(UPLOAD_DIR, 'model.onnx')
-    with open(file_location, "wb") as f:
-        while content := file.file.read(1024 * 1024):
-            f.write(content)
-
-    with open(METHODS_FILE, "w") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["dll", "method"])
-
-        sel_methods = dataset_methods.get_methods_list(methods_list)
-        for item in sel_methods:
-            if "," in item:
-                dll, method = item.split(",", 1)
-                writer.writerow([dll, method])
-
-    folder_path = "results"
-
-    shutil.rmtree(folder_path)
-    os.makedirs(folder_path)
-
-    RunstratBaseline().run()
-    RunstratAI().run()
-    Compstrat().run()
+    run_pipeline()
 
     send_folder_by_email(
         email,
         RESULTS_DIR,
-        os.getenv("EMAIL"),
-        os.getenv("APP_PASSWORD"),
         experiment,
         file.filename,
     )
 
     return {
+        "experiment": experiment,
         "filename": file.filename,
         "email": email,
-        "methods": methods_list,
+        "methods": methods,
         "message": "Data successfully uploaded",
     }
