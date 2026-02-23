@@ -1,11 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-import os
-import json, csv, shutil
 from dotenv import load_dotenv
+import os
+import json
+import csv
+import shutil
 
-from run_compstrat import run_compstrat
-from run_runstrat import run_runstrat, run_runstrat_ai
+from tools_runner.docker_runner import RunstratBaseline, RunstratAI, Compstrat
 from methods.methods import Methods
 from send_results import send_folder_by_email
 
@@ -21,11 +22,12 @@ frontend_methods_path = os.path.join(
     "src",
     "components",
     "components",
-    "Methods.ts"
+    "Methods.ts",
 )
 
-dataset_methods = Methods(data_filepath=DATASET_FILE,
-                          output_filepath=frontend_methods_path)
+dataset_methods = Methods(
+    data_filepath=DATASET_FILE, output_filepath=frontend_methods_path
+)
 
 app = FastAPI()
 
@@ -81,14 +83,22 @@ async def upload_file(
     shutil.rmtree(folder_path)
     os.makedirs(folder_path)
 
-    run_runstrat()
-    run_runstrat_ai()
-    run_compstrat()
-    send_folder_by_email(email, RESULTS_DIR, os.getenv("EMAIL"), os.getenv("APP_PASSWORD"), experiment, file.filename)
+    RunstratBaseline().run()
+    RunstratAI().run()
+    Compstrat().run()
+
+    send_folder_by_email(
+        email,
+        RESULTS_DIR,
+        os.getenv("EMAIL"),
+        os.getenv("APP_PASSWORD"),
+        experiment,
+        file.filename,
+    )
 
     return {
         "filename": file.filename,
         "email": email,
         "methods": methods_list,
-        "message": "Data successfully uploaded"
+        "message": "Data successfully uploaded",
     }
