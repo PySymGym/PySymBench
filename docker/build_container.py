@@ -3,13 +3,13 @@ import subprocess
 import requests
 
 image_name = "pysymgym-test"
-dockerfile_dir = "../docker"
+dockerfile_dir = "."
 
 print(f"Building Docker image '{image_name}'...")
 subprocess.run(["docker", "build", "-t", image_name, dockerfile_dir], check=True)
 print("Docker build completed.\n")
 
-RESOURCES_DIR = "resources"
+RESOURCES_DIR = "../backend/resources"
 os.makedirs(RESOURCES_DIR, exist_ok=True)
 DATASET_FILE = os.path.join(RESOURCES_DIR, "dataset.json")
 
