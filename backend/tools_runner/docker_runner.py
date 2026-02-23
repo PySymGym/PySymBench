@@ -68,7 +68,7 @@ class RunstratAI(DockerRunner):
             f"{self._get_path('uploads/launch_info.csv')}"
             ":/workspace/PySymGym/tools/runstrat/launch_info.csv",
             "-v",
-            f"{self._get_path('uploads/BCE_model.onnx')}"
+            f"{self._get_path('uploads/model.onnx')}"
             ":/workspace/PySymGym/tools/runstrat/resources/model.onnx",
         ]
 

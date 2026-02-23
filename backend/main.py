@@ -63,7 +63,7 @@ async def upload_file(
     except Exception:
         methods_list = []
 
-    file_location = os.path.join(UPLOAD_DIR, file.filename)
+    file_location = os.path.join(UPLOAD_DIR, 'model.onnx')
     with open(file_location, "wb") as f:
         while content := file.file.read(1024 * 1024):
             f.write(content)
