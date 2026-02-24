@@ -1,10 +1,10 @@
 import os
 import subprocess
 from abc import ABC, abstractmethod
+from docker.build_container import IMAGE_NAME
 
 
 class DockerRunner(ABC):
-    IMAGE = "pysymgym-test"
 
     def run(self) -> None:
         cmd = self._docker_cmd() + self._tool_cmd()
@@ -16,7 +16,7 @@ class DockerRunner(ABC):
             "run",
             "--rm",
             *self._volumes(),
-            self.IMAGE,
+            IMAGE_NAME,
         ]
 
     @abstractmethod

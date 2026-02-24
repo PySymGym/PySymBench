@@ -1,17 +1,9 @@
 import os
 import subprocess
 import requests
+from backend.config.paths import RESOURCES_DIR, DATASET_FILE
 
-image_name = "pysymgym-test"
-dockerfile_dir = "."
-
-print(f"Building Docker image '{image_name}'...")
-subprocess.run(["docker", "build", "-t", image_name, dockerfile_dir], check=True)
-print("Docker build completed.\n")
-
-RESOURCES_DIR = "../backend/resources"
-os.makedirs(RESOURCES_DIR, exist_ok=True)
-DATASET_FILE = os.path.join(RESOURCES_DIR, "dataset.json")
+IMAGE_NAME = "pysymgym-test"
 
 
 def fetch_dataset():
@@ -27,4 +19,15 @@ def fetch_dataset():
     return DATASET_FILE
 
 
+def build_container():
+    dockerfile_dir = "."
+
+    print(f"Building Docker image '{IMAGE_NAME}'...")
+    subprocess.run(["docker", "build", "-t", IMAGE_NAME, dockerfile_dir], check=True)
+    print("Docker build completed.\n")
+
+    os.makedirs(RESOURCES_DIR, exist_ok=True)
+
+
+build_container()
 fetch_dataset()
