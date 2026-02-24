@@ -1,45 +1,49 @@
-import os
 import subprocess
 from abc import ABC, abstractmethod
+
+from backend.config.paths import (
+    get_process_filepath,
+    RESULTS_DIR,
+    LAUNCH_INFO_FILE,
+    MODEL_ONNX_FILE,
+    ARTIFACTS_AI_CSV_FILE,
+    ARTIFACTS_BASELINE_CSV_FILE,
+    COMPSTRAT_RESULTS_DIR,
+)
 from docker.build_container import IMAGE_NAME
 
 
 class DockerRunner(ABC):
-
-    def run(self) -> None:
-        cmd = self._docker_cmd() + self._tool_cmd()
+    def run(self, uid) -> None:
+        cmd = self._docker_cmd(uid) + self._tool_cmd()
         subprocess.run(cmd, check=True)
 
-    def _docker_cmd(self) -> list[str]:
+    def _docker_cmd(self, uid) -> list[str]:
         return [
             "docker",
             "run",
             "--rm",
-            *self._volumes(),
+            *self._volumes(uid),
             IMAGE_NAME,
         ]
 
     @abstractmethod
-    def _volumes(self) -> list[str]:
+    def _volumes(self, uid) -> list[str]:
         """Docker volume mappings"""
 
     @abstractmethod
     def _tool_cmd(self) -> list[str]:
         """Command executed inside container"""
 
-    @staticmethod
-    def _get_path(path: str) -> str:
-        return os.path.abspath("backend/" + path)
-
 
 class RunstratBaseline(DockerRunner):
-    def _volumes(self) -> list[str]:
+    def _volumes(self, uid) -> list[str]:
         return [
             "-v",
-            f"{self._get_path('results')}:/workspace/PySymGym/tools/runstrat/results",
+            f"{get_process_filepath(uid, RESULTS_DIR)}:/workspace/PySymGym/tools/runstrat/results",
             "-v",
-            f"{self._get_path('uploads/launch_info.csv')}"
-            ":/workspace/PySymGym/tools/runstrat/launch_info.csv",
+            f"{get_process_filepath(uid, LAUNCH_INFO_FILE)}"
+            f":/workspace/PySymGym/tools/runstrat/resources/launch_info.csv",
         ]
 
     def _tool_cmd(self) -> list[str]:
@@ -55,21 +59,21 @@ class RunstratBaseline(DockerRunner):
             "runstrat/results/artifacts_run_baseline",
             "-as",
             "/workspace/PySymGym/maps/DotNet/Maps/Root/bin/Release/net8.0",
-            "runstrat/launch_info.csv",
+            "runstrat/resources/launch_info.csv",
         ]
 
 
 class RunstratAI(DockerRunner):
-    def _volumes(self) -> list[str]:
+    def _volumes(self, uid) -> list[str]:
         return [
             "-v",
-            f"{self._get_path('results')}:/workspace/PySymGym/tools/runstrat/results",
+            f"{get_process_filepath(uid, RESULTS_DIR)}:/workspace/PySymGym/tools/runstrat/results",
             "-v",
-            f"{self._get_path('uploads/launch_info.csv')}"
-            ":/workspace/PySymGym/tools/runstrat/launch_info.csv",
+            f"{get_process_filepath(uid, LAUNCH_INFO_FILE)}"
+            f":/workspace/PySymGym/tools/runstrat/resources/launch_info.csv",
             "-v",
-            f"{self._get_path('uploads/model.onnx')}"
-            ":/workspace/PySymGym/tools/runstrat/resources/model.onnx",
+            f"{get_process_filepath(uid, MODEL_ONNX_FILE)}"
+            f":/workspace/PySymGym/tools/runstrat/resources/model.onnx",
         ]
 
     def _tool_cmd(self) -> list[str]:
@@ -87,21 +91,21 @@ class RunstratAI(DockerRunner):
             "runstrat/results/artifacts_run_ai",
             "-as",
             "/workspace/PySymGym/maps/DotNet/Maps/Root/bin/Release/net8.0",
-            "runstrat/launch_info.csv",
+            "runstrat/resources/launch_info.csv",
         ]
 
 
 class Compstrat(DockerRunner):
-    def _volumes(self) -> list[str]:
+    def _volumes(self, uid) -> list[str]:
         return [
             "-v",
-            f"{self._get_path('results/artifacts_run_ai/AI.csv')}"
+            f"{get_process_filepath(uid, ARTIFACTS_AI_CSV_FILE)}"
             ":/workspace/PySymGym/tools/compstrat/strat/ai_strat",
             "-v",
-            f"{self._get_path('results/artifacts_run_baseline/ExecutionTreeContributedCoverage.csv')}"
+            f"{get_process_filepath(uid, ARTIFACTS_BASELINE_CSV_FILE)}"
             ":/workspace/PySymGym/tools/compstrat/strat/baseline_strat",
             "-v",
-            f"{self._get_path('results/compstrat_results')}"
+            f"{get_process_filepath(uid, COMPSTRAT_RESULTS_DIR)}"
             ":/workspace/PySymGym/tools/compstrat/results",
         ]
 
@@ -123,7 +127,7 @@ class Compstrat(DockerRunner):
         ]
 
 
-def run_pipeline() -> None:
-    RunstratBaseline().run()
-    RunstratAI().run()
-    Compstrat().run()
+def run_pipeline(uid) -> None:
+    RunstratBaseline().run(uid)
+    RunstratAI().run(uid)
+    Compstrat().run(uid)
