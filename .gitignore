@@ -213,6 +213,7 @@ __marimo__/
 # runstrat artifacts and config
 backend/results/
 backend/uploads
+.env
 
 #Frontend
 node_modules/
