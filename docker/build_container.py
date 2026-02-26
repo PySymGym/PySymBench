@@ -21,7 +21,7 @@ def fetch_dataset():
 
 def build_container():
     print(f"Building Docker image '{IMAGE_NAME}'...")
-    subprocess.run(["docker", "build", "-t", IMAGE_NAME, DOCKER_DIR], check=True)
+    subprocess.run(["docker", "build", "--no-cache", "-t", IMAGE_NAME, DOCKER_DIR], check=True)
     print("Docker build completed.\n")
 
     os.makedirs(RESOURCES_DIR, exist_ok=True)
