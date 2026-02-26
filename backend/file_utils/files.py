@@ -10,7 +10,7 @@ def save_upload_file(file: UploadFile, dst: str) -> None:
             f.write(chunk)
 
 
-def reset_dir(path: str) -> None:
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    os.makedirs(path)
+def reset_dirs(paths: list) -> None:
+    for path in paths:
+        if os.path.exists(path):
+            shutil.rmtree(path)

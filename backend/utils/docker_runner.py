@@ -2,7 +2,7 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from backend.config.paths import (
-    get_process_filepath,
+    get_thread_filepath,
     RESULTS_DIR,
     LAUNCH_INFO_FILE,
     MODEL_ONNX_FILE,
@@ -40,9 +40,9 @@ class RunstratBaseline(DockerRunner):
     def _volumes(self, uid) -> list[str]:
         return [
             "-v",
-            f"{get_process_filepath(uid, RESULTS_DIR)}:/workspace/PySymGym/tools/runstrat/results",
+            f"{get_thread_filepath(uid, RESULTS_DIR)}:/workspace/PySymGym/tools/runstrat/results",
             "-v",
-            f"{get_process_filepath(uid, LAUNCH_INFO_FILE)}"
+            f"{get_thread_filepath(uid, LAUNCH_INFO_FILE)}"
             f":/workspace/PySymGym/tools/runstrat/resources/launch_info.csv",
         ]
 
@@ -67,12 +67,12 @@ class RunstratAI(DockerRunner):
     def _volumes(self, uid) -> list[str]:
         return [
             "-v",
-            f"{get_process_filepath(uid, RESULTS_DIR)}:/workspace/PySymGym/tools/runstrat/results",
+            f"{get_thread_filepath(uid, RESULTS_DIR)}:/workspace/PySymGym/tools/runstrat/results",
             "-v",
-            f"{get_process_filepath(uid, LAUNCH_INFO_FILE)}"
+            f"{get_thread_filepath(uid, LAUNCH_INFO_FILE)}"
             f":/workspace/PySymGym/tools/runstrat/resources/launch_info.csv",
             "-v",
-            f"{get_process_filepath(uid, MODEL_ONNX_FILE)}"
+            f"{get_thread_filepath(uid, MODEL_ONNX_FILE)}"
             f":/workspace/PySymGym/tools/runstrat/resources/model.onnx",
         ]
 
@@ -99,13 +99,13 @@ class Compstrat(DockerRunner):
     def _volumes(self, uid) -> list[str]:
         return [
             "-v",
-            f"{get_process_filepath(uid, ARTIFACTS_AI_CSV_FILE)}"
+            f"{get_thread_filepath(uid, ARTIFACTS_AI_CSV_FILE)}"
             ":/workspace/PySymGym/tools/compstrat/strat/ai_strat",
             "-v",
-            f"{get_process_filepath(uid, ARTIFACTS_BASELINE_CSV_FILE)}"
+            f"{get_thread_filepath(uid, ARTIFACTS_BASELINE_CSV_FILE)}"
             ":/workspace/PySymGym/tools/compstrat/strat/baseline_strat",
             "-v",
-            f"{get_process_filepath(uid, COMPSTRAT_RESULTS_DIR)}"
+            f"{get_thread_filepath(uid, COMPSTRAT_RESULTS_DIR)}"
             ":/workspace/PySymGym/tools/compstrat/results",
         ]
 
