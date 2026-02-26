@@ -211,9 +211,8 @@ __marimo__/
 .DS_Store
 
 # runstrat artifacts and config
-backend/results/
-backend/uploads
 .env
+backend/tmp
 
 #Frontend
 node_modules/
