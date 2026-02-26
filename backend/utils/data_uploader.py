@@ -7,10 +7,10 @@ from backend.config.paths import LAUNCH_INFO_FILE, MODEL_ONNX_FILE, get_thread_f
 
 
 def handle_upload(
-        uid,
-        file,
-        methods: str,
-        dataset_methods: Methods,
+    uid,
+    file,
+    methods: str,
+    dataset_methods: Methods,
 ) -> None:
     selection_methods = json.loads(methods)
 

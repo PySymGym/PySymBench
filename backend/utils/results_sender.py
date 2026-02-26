@@ -15,10 +15,10 @@ def require_env(name: str) -> str:
 
 
 def send_folder_by_email(
-        to_email: str,
-        folder_path: str,
-        experiment_name: str,
-        model_name: str,
+    to_email: str,
+    folder_path: str,
+    experiment_name: str,
+    model_name: str,
 ):
     load_dotenv()
     from_email = require_env("EMAIL")

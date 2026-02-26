@@ -1,19 +1,14 @@
+import shortuuid
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-import shortuuid
 
-from backend.file_utils.files import reset_dirs
-from backend.utils.docker_runner import run_pipeline
-from backend.utils.data_uploader import handle_upload
-from backend.utils.methods_handler import Methods
-from backend.utils.results_sender import send_folder_by_email
 from backend.config.paths import (
-    RESULTS_DIR,
     DATASET_FILE,
     METHODS_TS_FILE,
-    get_thread_filepath,
-    get_tmp_thread_files
 )
+from backend.utils.data_uploader import handle_upload
+from backend.utils.methods_handler import Methods
+from backend.utils.task import process_and_cleanup_task
 
 dataset_methods = Methods(data_filepath=DATASET_FILE, output_filepath=METHODS_TS_FILE)
 
@@ -38,22 +33,13 @@ async def handle_submit(
 
     handle_upload(task_uid, file, methods, dataset_methods)
 
-    run_pipeline(task_uid)
-
-    send_folder_by_email(
-        email,
-        get_thread_filepath(task_uid, RESULTS_DIR),
-        experiment,
-        file.filename,
-    )
-
-    tmp_thread_dirs = get_tmp_thread_files(task_uid)
-    reset_dirs(tmp_thread_dirs)
+    process_and_cleanup_task.delay(task_uid, email, experiment, file.filename)
 
     return {
+        "task_uid": task_uid,
         "experiment": experiment,
         "filename": file.filename,
         "email": email,
         "methods": methods,
-        "message": "Data successfully uploaded",
+        "message": "Data uploaded, processing started",
     }
