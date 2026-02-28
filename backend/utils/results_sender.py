@@ -18,7 +18,7 @@ def send_folder_by_email(
     to_email: str,
     folder_path: str,
     experiment_name: str,
-    model_name: str,
+    model_file_name: str,
 ):
     load_dotenv()
     from_email = require_env("EMAIL")
@@ -34,14 +34,15 @@ def send_folder_by_email(
         for file in folder.rglob("*"):
             zipf.write(file, file.relative_to(folder))
 
+    model_name = model_file_name[:-5]
     msg = EmailMessage()
     msg["From"] = from_email
     msg["To"] = to_email
-    msg["Subject"] = f"Results of {experiment_name} with {model_name[:-5]}"
+    msg["Subject"] = f"Results of {experiment_name} with {model_name}"
 
     message = (
         f"\n\n"
-        f"The results of the experiment '{experiment_name}' using the model '{model_name[:-5]}' are ready. "
+        f"The results of the experiment '{experiment_name}' using the model '{model_name}' are ready. "
         f"Please find the details in the attached ZIP file.\n\n"
         f"Contents of the ZIP:\n"
         f" - Model run results: artifact_run_ai folder\n"

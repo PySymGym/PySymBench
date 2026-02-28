@@ -10,19 +10,19 @@ from backend.config.paths import (
 from backend.utils.methods_handler import Methods
 
 IMAGE_NAME = "pysymgym-test"
+URL = "https://raw.githubusercontent.com/PySymGym/PySymGym/main/maps/DotNet/Maps/dataset.json"
 
 
-def fetch_dataset():
-    url = "https://raw.githubusercontent.com/PySymGym/PySymGym/main/maps/DotNet/Maps/dataset.json"
+def fetch_dataset(url, data_upload_file):
     print(f"Downloading dataset from {url} ...")
     resp = requests.get(url)
     resp.raise_for_status()
 
-    with open(DATASET_FILE, "wb") as f:
+    with open(data_upload_file, "wb") as f:
         f.write(resp.content)
 
-    print(f"Dataset saved to {DATASET_FILE}")
-    return DATASET_FILE
+    print(f"Dataset saved to {data_upload_file}")
+    return data_upload_file
 
 
 def build_container():
@@ -35,13 +35,15 @@ def build_container():
     os.makedirs(RESOURCES_DIR, exist_ok=True)
 
 
-def update_frontend_selection_options():
+def update_frontend_selection_options(dataset_file, selection_options_file):
     print("Updating frontend selection options...")
-    selection_tree = Methods.parse_dataset_file_for_front_selection(DATASET_FILE)
-    Methods.write_selection_dataset_to_front_file(selection_tree, METHODS_TS_FILE)
+    selection_tree = Methods.parse_dataset_file_for_front_selection(dataset_file)
+    Methods.write_selection_dataset_to_front_file(
+        selection_tree, selection_options_file
+    )
 
 
 if __name__ == "__main__":
     build_container()
-    fetch_dataset()
-    update_frontend_selection_options()
+    fetch_dataset(URL, DATASET_FILE)
+    update_frontend_selection_options(DATASET_FILE, METHODS_TS_FILE)
