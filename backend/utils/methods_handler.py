@@ -3,17 +3,42 @@ from collections import defaultdict
 
 
 class Methods:
-    def __init__(self, data_filepath, output_filepath):
+    @staticmethod
+    def write_selection_dataset_to_front_file(
+        selection_dataset, front_selection_resource_path
+    ):
+        with open(front_selection_resource_path, "w") as f:
+            f.write("export const METHODS = ")
+            json.dump(selection_dataset, f, indent=4)
+
+    @staticmethod
+    def get_dlls_with_all_methods_dict_from_front_options_file(
+        front_selection_resource_path,
+    ):
+        with open(front_selection_resource_path, "r") as f:
+            content = f.read()
+        prefix = "export const METHODS = "
+        json_str = content[len(prefix) :]
+        selection_tree = json.loads(json_str)
+
+        dll_methods = defaultdict(list)
+        for node in selection_tree:
+            dll_name = node["title"] + ".dll"
+            dll_methods[dll_name] = []
+            for child in node["children"]:
+                dll_methods[dll_name].append(child["value"])
+        return dll_methods
+
+    @staticmethod
+    def parse_dataset_file_for_front_selection(data_filepath):
         with open(data_filepath, "r") as f:
             data = json.load(f)
 
-        self.dll_methods = defaultdict(list)
         groups = defaultdict(list)
         for item in data:
             groups[item["AssemblyFullName"]].append(item)
-            self.dll_methods[item["AssemblyFullName"]] = []
 
-        tree = []
+        dataset_tree = []
         for assembly, items in groups.items():
             node = {"title": assembly[:-4], "value": assembly, "children": []}
             seen_children = set()
@@ -22,21 +47,18 @@ class Methods:
                 if name in seen_children:
                     continue
                 seen_children.add(name)
-                dll_method = f"{assembly},{name}"
-                self.dll_methods[assembly].append(dll_method)
-                child_node = {"title": name, "value": dll_method}
+                dll_and_method = f"{assembly},{name}"
+                child_node = {"title": name, "value": dll_and_method}
                 node["children"].append(child_node)
-            tree.append(node)
+            dataset_tree.append(node)
+        return dataset_tree
 
-        with open(output_filepath, "w") as f:
-            f.write("export const METHODS = ")
-            json.dump(tree, f, indent=4)
-
-    def get_methods_from_selection(self, selection_list):
-        selected_methods = []
-        for item in selection_list:
-            if item in self.dll_methods.keys():
-                selected_methods.extend(self.dll_methods[item])
+    @staticmethod
+    def get_launch_info_list_from_selected(dll_methods: defaultdict, selected):
+        launch_info_methods = []
+        for item in selected:
+            if item in dll_methods.keys():
+                launch_info_methods.extend(dll_methods[item])
             else:
-                selected_methods.append(item)
-        return selected_methods
+                launch_info_methods.append(item)
+        return launch_info_methods

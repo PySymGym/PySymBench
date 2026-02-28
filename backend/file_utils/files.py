@@ -3,9 +3,9 @@ import shutil
 from fastapi import UploadFile
 
 
-def save_upload_file(file: UploadFile, dst: str) -> None:
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    with open(dst, "wb") as f:
+def save_upload_file(file: UploadFile, dest_filepath: str) -> None:
+    os.makedirs(os.path.dirname(dest_filepath), exist_ok=True)
+    with open(dest_filepath, "wb") as f:
         while chunk := file.file.read(1024 * 1024):
             f.write(chunk)
 

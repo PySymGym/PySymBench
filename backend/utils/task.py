@@ -1,4 +1,5 @@
 from celery import Celery
+
 from backend.utils.docker_runner import run_pipeline
 from backend.utils.results_sender import send_folder_by_email
 from backend.config.paths import RESULTS_DIR, get_thread_filepath, get_tmp_thread_files
@@ -10,7 +11,12 @@ celery_app = Celery(
 
 
 @celery_app.task
-def process_and_cleanup_task(task_uid: str, email: str, experiment: str, filename: str):
+def process_and_cleanup_task(
+    task_uid: str,
+    email: str,
+    experiment: str,
+    filename: str,
+):
     run_pipeline(task_uid)
 
     send_folder_by_email(

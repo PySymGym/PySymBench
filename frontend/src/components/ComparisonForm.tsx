@@ -37,7 +37,7 @@ const ComparisonForm: React.FC = () => {
             });
             if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
-            message.success('Data successfully submitted');
+            message.success(data.message);
             console.log(data);
         } catch (err) {
             console.error(err);

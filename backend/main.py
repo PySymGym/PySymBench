@@ -2,15 +2,14 @@ import shortuuid
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.config.paths import (
-    DATASET_FILE,
-    METHODS_TS_FILE,
-)
+from backend.config.paths import METHODS_TS_FILE
 from backend.utils.data_uploader import handle_upload
 from backend.utils.methods_handler import Methods
 from backend.utils.task import process_and_cleanup_task
 
-dataset_methods = Methods(data_filepath=DATASET_FILE, output_filepath=METHODS_TS_FILE)
+DATASET_DLLS_AND_METHODS = (
+    Methods.get_dlls_with_all_methods_dict_from_front_options_file(METHODS_TS_FILE)
+)
 
 app = FastAPI()
 
@@ -24,15 +23,14 @@ app.add_middleware(
 
 @app.post("/api/upload")
 async def handle_submit(
-        file: UploadFile = File(...),
-        email: str = Form(...),
-        methods: str = Form(...),
-        experiment: str = Form(...),
+    file: UploadFile = File(...),
+    email: str = Form(...),
+    methods: str = Form(...),
+    experiment: str = Form(...),
 ):
     task_uid = str(shortuuid.uuid())
 
-    handle_upload(task_uid, file, methods, dataset_methods)
-
+    handle_upload(task_uid, file, methods, DATASET_DLLS_AND_METHODS)
     process_and_cleanup_task.delay(task_uid, email, experiment, file.filename)
 
     return {

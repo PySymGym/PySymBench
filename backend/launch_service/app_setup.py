@@ -1,7 +1,13 @@
 import os
 import subprocess
 import requests
-from backend.config.paths import RESOURCES_DIR, DATASET_FILE, DOCKER_DIR
+from backend.config.paths import (
+    RESOURCES_DIR,
+    DATASET_FILE,
+    DOCKER_DIR,
+    METHODS_TS_FILE,
+)
+from backend.utils.methods_handler import Methods
 
 IMAGE_NAME = "pysymgym-test"
 
@@ -21,12 +27,21 @@ def fetch_dataset():
 
 def build_container():
     print(f"Building Docker image '{IMAGE_NAME}'...")
-    subprocess.run(["docker", "build", "--no-cache", "-t", IMAGE_NAME, DOCKER_DIR], check=True)
+    subprocess.run(
+        ["docker", "build", "--no-cache", "-t", IMAGE_NAME, DOCKER_DIR], check=True
+    )
     print("Docker build completed.\n")
 
     os.makedirs(RESOURCES_DIR, exist_ok=True)
 
 
+def update_frontend_selection_options():
+    print("Updating frontend selection options...")
+    selection_tree = Methods.parse_dataset_file_for_front_selection(DATASET_FILE)
+    Methods.write_selection_dataset_to_front_file(selection_tree, METHODS_TS_FILE)
+
+
 if __name__ == "__main__":
     build_container()
     fetch_dataset()
+    update_frontend_selection_options()

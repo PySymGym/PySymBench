@@ -10,7 +10,7 @@ from backend.config.paths import (
     ARTIFACTS_BASELINE_CSV_FILE,
     COMPSTRAT_RESULTS_DIR,
 )
-from docker.build_container import IMAGE_NAME
+from backend.launch_service.app_setup import IMAGE_NAME
 
 
 class DockerRunner(ABC):
