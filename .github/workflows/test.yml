@@ -23,4 +23,4 @@ jobs:
       - name: Run Python tests
         working-directory: ./backend/file_utils
         run: |
-          python -m pytest tests/ -v --cov=./ --cov-report=xml
+          python -m pytest
