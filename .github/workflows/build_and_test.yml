@@ -1,9 +1,9 @@
-name: Test build project and run tests without docker
+name: Build project and run tests
 
 on: [ push, pull_request ]
 
 jobs:
-  build-and-launch:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,6 +20,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Build dockerfile and update dataset
+        run: |
+          python -m backend.launch_service.app_setup
+
+      - name: Create .env file for tests
+        run: |
+          cat > .env << EOF
+          EMAIL=test@example.com
+          APP_PASSWORD=test_password_123
+          EOF
+
       - name: Run Python tests
         run: |
-          python -m pytest backend/file_utils/tests/ -v
+          python -m pytest -v
