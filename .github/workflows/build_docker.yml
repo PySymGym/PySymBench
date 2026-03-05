@@ -24,6 +24,13 @@ jobs:
         run: |
           python -m backend.launch_service.app_setup
 
+      - name: Create .env file for tests
+        run: |
+          cat > .env << EOF
+          EMAIL=test@example.com
+          APP_PASSWORD=test_password_123
+          EOF
+      
       - name: Run Python tests
         run: |
           python -m pytest -v
