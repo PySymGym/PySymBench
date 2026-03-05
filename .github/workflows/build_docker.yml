@@ -22,7 +22,7 @@ jobs:
 
       - name: Build dockerfile and update dataset
         run: |
-          python python -m backend.launch_service.app_setup
+          python -m backend.launch_service.app_setup
 
       - name: Run Python tests
         run: |
