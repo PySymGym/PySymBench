@@ -1,17 +1,14 @@
 import os
-import shutil
 from unittest.mock import Mock, patch
 
-from backend.config.paths import TMP_FILE_DIR, DOCKER_DIR, RESOURCES_DIR
+from backend.config.paths import DOCKER_DIR, RESOURCES_DIR
 from backend.launch_service.app_setup import fetch_dataset, IMAGE_NAME, build_container
 
 
-def test_fetch_dataset():
+def test_fetch_dataset(tmp_path):
     url = "https://example.com/dataset.csv"
     test_content = b"dll,method\nManuallyCollected.dll,BinSearchMain"
-    upload_dir = TMP_FILE_DIR + "/test_dataset_upload/"
-    os.makedirs(upload_dir)
-    data_file = upload_dir + "dataset.json"
+    data_file = tmp_path / "dataset.json"
 
     with patch("requests.get") as mock_get:
         mock_response = Mock()
@@ -25,7 +22,6 @@ def test_fetch_dataset():
     assert os.path.exists(data_file)
     with open(data_file, "rb") as f:
         assert f.read() == test_content
-    shutil.rmtree(upload_dir)
     mock_get.assert_called_once_with(url)
     mock_response.raise_for_status.assert_called_once()
 
