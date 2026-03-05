@@ -4,7 +4,7 @@ from collections import defaultdict
 
 class Methods:
     @staticmethod
-    def write_selection_dataset_to_front_file(
+    def save_selection_to_frontend_file(
         selection_dataset, front_selection_resource_path
     ):
         with open(front_selection_resource_path, "w") as f:
@@ -12,7 +12,7 @@ class Methods:
             json.dump(selection_dataset, f, indent=4)
 
     @staticmethod
-    def get_dlls_with_all_methods_dict_from_front_options_file(
+    def parse_frontend_file_to_dll_methods(
         front_selection_resource_path,
     ):
         with open(front_selection_resource_path, "r") as f:
@@ -30,7 +30,7 @@ class Methods:
         return dll_methods
 
     @staticmethod
-    def parse_dataset_file_for_front_selection(data_filepath):
+    def build_selection_tree_from_dataset(data_filepath):
         with open(data_filepath, "r") as f:
             data = json.load(f)
 
@@ -54,7 +54,7 @@ class Methods:
         return dataset_tree
 
     @staticmethod
-    def get_launch_info_list_from_selected(dll_methods: defaultdict, selected):
+    def expand_selected_items_to_methods(dll_methods: defaultdict, selected):
         launch_info_methods = []
         for item in selected:
             if item in dll_methods.keys():

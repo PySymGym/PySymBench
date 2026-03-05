@@ -37,10 +37,8 @@ def build_container():
 
 def update_frontend_selection_options(dataset_file, selection_options_file):
     print("Updating frontend selection options...")
-    selection_tree = Methods.parse_dataset_file_for_front_selection(dataset_file)
-    Methods.write_selection_dataset_to_front_file(
-        selection_tree, selection_options_file
-    )
+    selection_tree = Methods.build_selection_tree_from_dataset(dataset_file)
+    Methods.save_selection_to_frontend_file(selection_tree, selection_options_file)
 
 
 if __name__ == "__main__":

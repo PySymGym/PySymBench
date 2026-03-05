@@ -12,24 +12,24 @@ def test_write_selection_dataset_to_front_file():
     ]
 
     with NamedTemporaryFile(mode="w+", suffix=".js") as temp_file:
-        Methods.write_selection_dataset_to_front_file(test_data, temp_file.name)
+        Methods.save_selection_to_frontend_file(test_data, temp_file.name)
 
         temp_file.seek(0)
         content = temp_file.read()
 
         assert content.startswith("export const METHODS = ")
-        json_str = content[len("export const METHODS = ") :]
+        json_str = content[len("export const METHODS = "):]
         written_data = json.loads(json_str)
         assert written_data == test_data
 
 
 def test_write_selection_dataset_to_front_file_empty():
     with NamedTemporaryFile(mode="w+", suffix=".js") as temp_file:
-        Methods.write_selection_dataset_to_front_file([], temp_file.name)
+        Methods.save_selection_to_frontend_file([], temp_file.name)
 
         temp_file.seek(0)
         content = temp_file.read()
-        json_str = content[len("export const METHODS = ") :]
+        json_str = content[len("export const METHODS = "):]
         assert json.loads(json_str) == []
 
 
@@ -51,11 +51,9 @@ def test_get_dlls_with_all_methods_dict_from_front_options_file():
     ]
 
     with NamedTemporaryFile(mode="w+", suffix=".js") as temp_file:
-        Methods.write_selection_dataset_to_front_file(test_data, temp_file.name)
+        Methods.save_selection_to_frontend_file(test_data, temp_file.name)
 
-        result = Methods.get_dlls_with_all_methods_dict_from_front_options_file(
-            temp_file.name
-        )
+        result = Methods.parse_frontend_file_to_dll_methods(temp_file.name)
 
         expected = defaultdict(
             list,
@@ -70,11 +68,9 @@ def test_get_dlls_with_all_methods_dict_from_front_options_file():
 
 def test_get_dlls_with_all_methods_dict_empty_file():
     with NamedTemporaryFile(mode="w+", suffix=".js") as temp_file:
-        Methods.write_selection_dataset_to_front_file([], temp_file.name)
+        Methods.save_selection_to_frontend_file([], temp_file.name)
 
-        result = Methods.get_dlls_with_all_methods_dict_from_front_options_file(
-            temp_file.name
-        )
+        result = Methods.parse_frontend_file_to_dll_methods(temp_file.name)
 
         assert dict(result) == {}
 
@@ -90,7 +86,7 @@ def test_parse_dataset_file_for_front_selection():
         json.dump(test_data, temp_file)
         temp_file.flush()
 
-        result = Methods.parse_dataset_file_for_front_selection(temp_file.name)
+        result = Methods.build_selection_tree_from_dataset(temp_file.name)
 
         assert len(result) == 2
 
@@ -115,7 +111,7 @@ def test_parse_dataset_file_duplicate_methods():
         json.dump(test_data, temp_file)
         temp_file.flush()
 
-        result = Methods.parse_dataset_file_for_front_selection(temp_file.name)
+        result = Methods.build_selection_tree_from_dataset(temp_file.name)
 
         assert len(result[0]["children"]) == 1
 
@@ -131,7 +127,7 @@ def test_get_launch_info_list_from_selected():
 
     selected = ["Assembly1.dll", "Assembly2.dll,Method3", "Assembly2.dll,Method4"]
 
-    result = Methods.get_launch_info_list_from_selected(dll_methods, selected)
+    result = Methods.expand_selected_items_to_methods(dll_methods, selected)
 
     expected = [
         "Assembly1.dll,Method1",
@@ -150,7 +146,7 @@ def test_get_launch_info_list_from_selected_no_dlls():
         "Assembly3.dll,Method3",
     ]
 
-    result = Methods.get_launch_info_list_from_selected(dll_methods, selected)
+    result = Methods.expand_selected_items_to_methods(dll_methods, selected)
 
     assert result == selected
 
@@ -158,7 +154,7 @@ def test_get_launch_info_list_from_selected_no_dlls():
 def test_get_launch_info_list_from_selected_empty():
     dll_methods = defaultdict(list, {"Assembly1.dll": ["Method1"]})
 
-    result = Methods.get_launch_info_list_from_selected(dll_methods, [])
+    result = Methods.expand_selected_items_to_methods(dll_methods, [])
 
     assert result == []
 
@@ -176,16 +172,14 @@ def test_integration_full_flow():
         json.dump(original_data, data_file)
         data_file.flush()
 
-        frontend_data = Methods.parse_dataset_file_for_front_selection(data_file.name)
+        frontend_data = Methods.build_selection_tree_from_dataset(data_file.name)
 
-        Methods.write_selection_dataset_to_front_file(frontend_data, front_file.name)
+        Methods.save_selection_to_frontend_file(frontend_data, front_file.name)
 
-        dll_methods = Methods.get_dlls_with_all_methods_dict_from_front_options_file(
-            front_file.name
-        )
+        dll_methods = Methods.parse_frontend_file_to_dll_methods(front_file.name)
 
         selected = ["Test.dll"]
-        launch_info = Methods.get_launch_info_list_from_selected(dll_methods, selected)
+        launch_info = Methods.expand_selected_items_to_methods(dll_methods, selected)
 
         assert len(launch_info) == 2
         assert "Test.dll,Method1" in launch_info

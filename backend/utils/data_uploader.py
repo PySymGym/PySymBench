@@ -15,7 +15,7 @@ def handle_upload(
     methods: str,
     dataset_dll_and_methods: defaultdict,
 ) -> None:
-    launch_methods = Methods.get_launch_info_list_from_selected(
+    launch_methods = Methods.expand_selected_items_to_methods(
         dataset_dll_and_methods, json.loads(methods)
     )
 

@@ -7,9 +7,7 @@ from backend.utils.data_uploader import handle_upload
 from backend.utils.methods_handler import Methods
 from backend.utils.task import process_and_cleanup_task
 
-DATASET_DLLS_AND_METHODS = (
-    Methods.get_dlls_with_all_methods_dict_from_front_options_file(METHODS_TS_FILE)
-)
+DATASET_DLLS_AND_METHODS = Methods.parse_frontend_file_to_dll_methods(METHODS_TS_FILE)
 
 app = FastAPI()
 
