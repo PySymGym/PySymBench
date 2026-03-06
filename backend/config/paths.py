@@ -11,9 +11,9 @@ def get_thread_filepath(uid, filepath):
     return filepath.replace(base_prefix, new_prefix)
 
 
-DOCKER_DIR = os.getcwd() + "/docker"
-BASE_DIR = os.getcwd() + "/backend"
-TMP_FILE_DIR = BASE_DIR + "/tmp"
+DOCKER_DIR = os.path.join(os.getcwd(), "docker")
+BASE_DIR = os.path.join(os.getcwd(), "backend")
+TMP_FILE_DIR = os.path.join(BASE_DIR, "tmp")
 
 RESOURCES_DIR = os.path.join(BASE_DIR, "resources")
 UPLOAD_DIR = os.path.join(TMP_FILE_DIR, "uploads")
