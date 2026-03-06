@@ -1,6 +1,5 @@
 import os
 import subprocess
-import requests
 from backend.config.paths import (
     RESOURCES_DIR,
     DATASET_FILE,
@@ -10,19 +9,33 @@ from backend.config.paths import (
 from backend.utils.methods_handler import Methods
 
 IMAGE_NAME = "pysymgym-test"
-URL = "https://raw.githubusercontent.com/PySymGym/PySymGym/main/maps/DotNet/Maps/dataset.json"
 
 
-def fetch_dataset(url, data_upload_file):
-    print(f"Downloading dataset from {url} ...")
-    resp = requests.get(url)
-    resp.raise_for_status()
+def fetch_dataset(data_upload_file):
+    container_name = "temp-fetch-dataset"
 
-    with open(data_upload_file, "wb") as f:
-        f.write(resp.content)
+    try:
+        subprocess.run(
+            ["docker", "create", "--name", container_name, IMAGE_NAME],
+            check=True,
+            capture_output=True,
+        )
 
-    print(f"Dataset saved to {data_upload_file}")
-    return data_upload_file
+        subprocess.run(
+            [
+                "docker",
+                "cp",
+                f"{container_name}:/workspace/PySymGym/maps/DotNet/Maps/dataset.json",
+                data_upload_file,
+            ],
+            check=True,
+        )
+
+        print(f"Dataset copied to {data_upload_file}")
+        return data_upload_file
+
+    finally:
+        subprocess.run(["docker", "rm", container_name], capture_output=True)
 
 
 def build_container():
@@ -43,5 +56,5 @@ def update_frontend_selection_options(dataset_file, selection_options_file):
 
 if __name__ == "__main__":
     build_container()
-    fetch_dataset(URL, DATASET_FILE)
+    fetch_dataset(DATASET_FILE)
     update_frontend_selection_options(DATASET_FILE, METHODS_TS_FILE)

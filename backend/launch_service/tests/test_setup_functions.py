@@ -1,29 +1,39 @@
-import os
+import subprocess
 from unittest.mock import Mock, patch
 
 from backend.config.paths import DOCKER_DIR, RESOURCES_DIR
 from backend.launch_service.app_setup import fetch_dataset, IMAGE_NAME, build_container
 
 
-def test_fetch_dataset(tmp_path):
-    url = "https://example.com/dataset.csv"
-    test_content = b"dll,method\nManuallyCollected.dll,BinSearchMain"
-    data_file = tmp_path / "dataset.json"
+def test_fetch_dataset_success(tmp_path, monkeypatch):
+    test_file = tmp_path / "dataset.json"
+    commands_executed = []
 
-    with patch("requests.get") as mock_get:
-        mock_response = Mock()
-        mock_response.content = test_content
-        mock_response.raise_for_status = Mock()
-        mock_get.return_value = mock_response
+    class MockResult:
+        def __init__(self, returncode=0, stdout=b"", stderr=b""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
 
-        result = fetch_dataset(url, data_file)
+    def mock_subprocess_run(*args, **kwargs):
+        commands_executed.append(args[0])
 
-    assert result == data_file
-    assert os.path.exists(data_file)
-    with open(data_file, "rb") as f:
-        assert f.read() == test_content
-    mock_get.assert_called_once_with(url)
-    mock_response.raise_for_status.assert_called_once()
+        if args[0][0] == "docker" and args[0][1] == "cp":
+            test_file.write_text('{"test": "data"}')
+
+        return MockResult()
+
+    monkeypatch.setattr(subprocess, "run", mock_subprocess_run)
+
+    result = fetch_dataset(str(test_file))
+
+    assert result == str(test_file)
+    assert test_file.exists()
+    assert test_file.read_text() == '{"test": "data"}'
+    assert len(commands_executed) == 3
+    assert commands_executed[0][:3] == ["docker", "create", "--name"]
+    assert commands_executed[1][:2] == ["docker", "cp"]
+    assert commands_executed[2][:2] == ["docker", "rm"]
 
 
 def test_successful_build():
