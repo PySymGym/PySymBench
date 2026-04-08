@@ -5,7 +5,7 @@ from collections import defaultdict
 class Methods:
     @staticmethod
     def save_selection_to_frontend_file(
-        selection_dataset, front_selection_resource_path
+            selection_dataset, front_selection_resource_path
     ):
         with open(front_selection_resource_path, "w") as f:
             f.write("export const METHODS = ")
@@ -13,18 +13,17 @@ class Methods:
 
     @staticmethod
     def parse_frontend_file_to_dll_methods(
-        front_selection_resource_path,
+            front_selection_resource_path,
     ):
         with open(front_selection_resource_path, "r") as f:
             content = f.read()
         prefix = "export const METHODS = "
-        json_str = content[len(prefix) :]
+        json_str = content[len(prefix):]
         selection_tree = json.loads(json_str)
 
         dll_methods = defaultdict(list)
         for node in selection_tree:
             dll_name = node["title"] + ".dll"
-            dll_methods[dll_name] = []
             for child in node["children"]:
                 dll_methods[dll_name].append(child["value"])
         return dll_methods
