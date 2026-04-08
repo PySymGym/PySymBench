@@ -6,7 +6,7 @@ def get_tmp_thread_files(uid):
 
 
 def get_thread_filepath(uid, filepath):
-    base_prefix = TMP_FILE_DIR + "/"
+    base_prefix = TMP_FILE_DIR + os.sep
     new_prefix = f"{TMP_FILE_DIR}/{uid}"
     return filepath.replace(base_prefix, new_prefix)
 
