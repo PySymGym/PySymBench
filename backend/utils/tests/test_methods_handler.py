@@ -18,7 +18,7 @@ def test_write_selection_dataset_to_front_file():
         content = temp_file.read()
 
         assert content.startswith("export const METHODS = ")
-        json_str = content[len("export const METHODS = ") :]
+        json_str = content[len("export const METHODS = "):]
         written_data = json.loads(json_str)
         assert written_data == test_data
 
@@ -29,7 +29,7 @@ def test_write_selection_dataset_to_front_file_empty():
 
         temp_file.seek(0)
         content = temp_file.read()
-        json_str = content[len("export const METHODS = ") :]
+        json_str = content[len("export const METHODS = "):]
         assert json.loads(json_str) == []
 
 
@@ -55,15 +55,14 @@ def test_get_dlls_with_all_methods_dict_from_front_options_file():
 
         result = Methods.parse_frontend_file_to_dll_methods(temp_file.name)
 
-        expected = defaultdict(
-            list,
+        expected = dict(
             {
                 "Assembly1.dll": ["Assembly1.dll,Method1", "Assembly1.dll,Method2"],
                 "Assembly2.dll": ["Assembly2.dll,Method3"],
             },
         )
 
-        assert dict(result) == dict(expected)
+        assert dict(result) == expected
 
 
 def test_get_dlls_with_all_methods_dict_empty_file():
