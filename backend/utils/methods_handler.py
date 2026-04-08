@@ -1,6 +1,8 @@
 import json
 from collections import defaultdict
 
+FRONT_SELECTION_PREFIX = "export const METHODS = "
+
 
 class Methods:
     @staticmethod
@@ -17,8 +19,7 @@ class Methods:
     ):
         with open(front_selection_resource_path, "r") as f:
             content = f.read()
-        prefix = "export const METHODS = "
-        json_str = content[len(prefix):]
+        json_str = content[len(FRONT_SELECTION_PREFIX):]
         selection_tree = json.loads(json_str)
 
         dll_methods = defaultdict(list)
