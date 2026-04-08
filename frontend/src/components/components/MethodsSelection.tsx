@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { TreeSelect } from "antd";
-import { METHODS } from "./Methods";
+import React, { useState } from 'react';
+import { TreeSelect } from 'antd';
+import { METHODS } from './Methods';
 
 const { SHOW_PARENT } = TreeSelect;
 
@@ -24,7 +24,7 @@ const MethodsSelection: React.FC<MethodsSelectionProps> = ({ onChange }) => {
       treeCheckable
       showCheckedStrategy={SHOW_PARENT}
       placeholder="Please select methods"
-      style={{ width: "100%" }}
+      style={{ width: '100%' }}
       maxTagCount={2}
       maxTagPlaceholder={(omittedValues) => `+${omittedValues.length} selected`}
     />

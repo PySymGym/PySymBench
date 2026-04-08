@@ -1,4 +1,4 @@
-import ComparisonForm from "./components/ComparisonForm";
+import ComparisonForm from './components/ComparisonForm';
 
 function App() {
   return (
