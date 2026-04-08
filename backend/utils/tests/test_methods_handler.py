@@ -18,7 +18,7 @@ def test_write_selection_dataset_to_front_file():
         content = temp_file.read()
 
         assert content.startswith("export const METHODS = ")
-        json_str = content[len("export const METHODS = "):]
+        json_str = content[len("export const METHODS = ") :]
         written_data = json.loads(json_str)
         assert written_data == test_data
 
@@ -29,7 +29,7 @@ def test_write_selection_dataset_to_front_file_empty():
 
         temp_file.seek(0)
         content = temp_file.read()
-        json_str = content[len("export const METHODS = "):]
+        json_str = content[len("export const METHODS = ") :]
         assert json.loads(json_str) == []
 
 

@@ -7,7 +7,7 @@ FRONT_SELECTION_PREFIX = "export const METHODS = "
 class Methods:
     @staticmethod
     def save_selection_to_frontend_file(
-            selection_dataset, front_selection_resource_path
+        selection_dataset, front_selection_resource_path
     ):
         with open(front_selection_resource_path, "w") as f:
             f.write("export const METHODS = ")
@@ -15,11 +15,11 @@ class Methods:
 
     @staticmethod
     def parse_frontend_file_to_dll_methods(
-            front_selection_resource_path,
+        front_selection_resource_path,
     ):
         with open(front_selection_resource_path, "r") as f:
             content = f.read()
-        json_str = content[len(FRONT_SELECTION_PREFIX):]
+        json_str = content[len(FRONT_SELECTION_PREFIX) :]
         selection_tree = json.loads(json_str)
 
         dll_methods = defaultdict(list)

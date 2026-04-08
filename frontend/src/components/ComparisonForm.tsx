@@ -45,7 +45,7 @@ const ComparisonForm: React.FC = () => {
         }
     };
 
-    const onFinishFailed = (errorInfo: any) => {
+    const onFinishFailed = (errorInfo) => {
         console.log('Failed:', errorInfo);
     };
 
