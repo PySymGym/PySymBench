@@ -25,5 +25,5 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        files: ^frontend/.*\.(js|jsx|ts|tsx|json|css|md)$
+        files: \"\.(js|jsx|ts|tsx|json|css|md)\"$
         args: [ '--write' ]
