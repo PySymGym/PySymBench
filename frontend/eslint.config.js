@@ -56,5 +56,12 @@ export default [
         version: 'detect',
       },
     },
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/src/components/components/METHODS.ts',
+    ],
   },
 ];

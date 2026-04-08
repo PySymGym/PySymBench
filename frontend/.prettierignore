@@ -9,3 +9,4 @@ coverage/
 package-lock.json
 yarn.lock
 eslint.config.js
+src/components/components/METHODS.ts
