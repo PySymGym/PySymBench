@@ -14,6 +14,8 @@ IMAGE_NAME = "pysymgym-test"
 def fetch_dataset(data_upload_file):
     container_name = "temp-fetch-dataset"
 
+    os.makedirs(os.path.dirname(data_upload_file), exist_ok=True)
+
     try:
         subprocess.run(
             ["docker", "create", "--name", container_name, IMAGE_NAME],
