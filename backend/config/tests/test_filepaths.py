@@ -1,11 +1,11 @@
 import pytest
 
 from backend.config.paths import (
-    get_tmp_thread_files,
     RESULTS_DIR,
+    TMP_FILE_DIR,
     UPLOAD_DIR,
     get_thread_filepath,
-    TMP_FILE_DIR,
+    get_tmp_thread_files,
 )
 
 

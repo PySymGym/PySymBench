@@ -1,5 +1,6 @@
-import pytest
 from pathlib import Path
+
+import pytest
 
 from backend.config.paths import (
     ARTIFACTS_AI_CSV_FILE,
@@ -7,7 +8,7 @@ from backend.config.paths import (
     BASE_DIR,
 )
 from backend.utils import docker_runner
-from backend.utils.docker_runner import RunstratBaseline, RunstratAI, Compstrat
+from backend.utils.docker_runner import Compstrat, RunstratAI, RunstratBaseline
 
 TEST_RESOURCES_DIR = BASE_DIR + "/utils/tests/resources/"
 TEST_ARTIFACTS_BASELINE_CSV_FILE = (

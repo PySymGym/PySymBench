@@ -1,10 +1,11 @@
 import os
-import zipfile
 import smtplib
 import ssl
-from dotenv import load_dotenv
-from pathlib import Path
+import zipfile
 from email.message import EmailMessage
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 def require_env(name: str) -> str:

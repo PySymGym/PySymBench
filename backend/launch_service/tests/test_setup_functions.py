@@ -2,7 +2,7 @@ import subprocess
 from unittest.mock import Mock, patch
 
 from backend.config.paths import DOCKER_DIR, RESOURCES_DIR
-from backend.launch_service.app_setup import fetch_dataset, IMAGE_NAME, build_container
+from backend.launch_service.app_setup import IMAGE_NAME, build_container, fetch_dataset
 
 
 def test_fetch_dataset_success(tmp_path, monkeypatch):

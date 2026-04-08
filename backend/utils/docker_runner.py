@@ -2,13 +2,13 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from backend.config.paths import (
-    get_thread_filepath,
-    RESULTS_DIR,
-    LAUNCH_INFO_FILE,
-    MODEL_ONNX_FILE,
     ARTIFACTS_AI_CSV_FILE,
     ARTIFACTS_BASELINE_CSV_FILE,
     COMPSTRAT_RESULTS_DIR,
+    LAUNCH_INFO_FILE,
+    MODEL_ONNX_FILE,
+    RESULTS_DIR,
+    get_thread_filepath,
 )
 from backend.launch_service.app_setup import IMAGE_NAME
 

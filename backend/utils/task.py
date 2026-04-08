@@ -1,9 +1,9 @@
 from celery import Celery
 
-from backend.utils.docker_runner import run_pipeline
-from backend.utils.results_sender import send_folder_by_email
 from backend.config.paths import RESULTS_DIR, get_thread_filepath, get_tmp_thread_files
 from backend.file_utils.files import reset_dirs
+from backend.utils.docker_runner import run_pipeline
+from backend.utils.results_sender import send_folder_by_email
 
 celery_app = Celery(
     "tasks", broker="redis://localhost:6379", backend="redis://localhost:6379"

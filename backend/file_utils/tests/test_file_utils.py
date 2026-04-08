@@ -1,13 +1,14 @@
-import pytest
-import os
 import csv
+import os
+from io import BytesIO
+from unittest.mock import Mock
+
+import pytest
+from fastapi import UploadFile
 
 from backend.config.paths import TMP_FILE_DIR
 from backend.file_utils.csv_methods_writer import write_launch_info_to_csv
 from backend.file_utils.files import reset_dirs, save_upload_file
-from unittest.mock import Mock
-from fastapi import UploadFile
-from io import BytesIO
 
 
 @pytest.mark.parametrize(
@@ -57,7 +58,7 @@ def test_write_launch_info_to_csv(tmp_path):
 
     assert output_file.exists()
 
-    with open(output_file, "r") as f:
+    with open(output_file) as f:
         reader = csv.reader(f)
         rows = list(reader)
 

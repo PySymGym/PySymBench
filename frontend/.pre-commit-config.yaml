@@ -1,0 +1,10 @@
+repos:
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.38.0
+    hooks:
+      - id: eslint
+        args: ['--fix']
+        additional_dependencies:
+          - eslint@9.38.0
+          - '@typescript-eslint/eslint-plugin@8.58.1'
+          - '@typescript-eslint/parser@8.58.1'

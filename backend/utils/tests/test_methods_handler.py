@@ -55,12 +55,10 @@ def test_get_dlls_with_all_methods_dict_from_front_options_file():
 
         result = Methods.parse_frontend_file_to_dll_methods(temp_file.name)
 
-        expected = dict(
-            {
-                "Assembly1.dll": ["Assembly1.dll,Method1", "Assembly1.dll,Method2"],
-                "Assembly2.dll": ["Assembly2.dll,Method3"],
-            },
-        )
+        expected = {
+            "Assembly1.dll": ["Assembly1.dll,Method1", "Assembly1.dll,Method2"],
+            "Assembly2.dll": ["Assembly2.dll,Method3"],
+        }
 
         assert dict(result) == expected
 

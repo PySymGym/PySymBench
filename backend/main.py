@@ -1,5 +1,5 @@
 import shortuuid
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config.paths import METHODS_TS_FILE
@@ -21,7 +21,7 @@ app.add_middleware(
 
 @app.post("/api/upload")
 async def handle_submit(
-    file: UploadFile = File(...),
+    file: UploadFile,
     email: str = Form(...),
     methods: str = Form(...),
     experiment: str = Form(...),

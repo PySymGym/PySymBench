@@ -17,7 +17,7 @@ class Methods:
     def parse_frontend_file_to_dll_methods(
         front_selection_resource_path,
     ):
-        with open(front_selection_resource_path, "r") as f:
+        with open(front_selection_resource_path) as f:
             content = f.read()
         json_str = content[len(FRONT_SELECTION_PREFIX) :]
         selection_tree = json.loads(json_str)
@@ -31,7 +31,7 @@ class Methods:
 
     @staticmethod
     def build_selection_tree_from_dataset(data_filepath):
-        with open(data_filepath, "r") as f:
+        with open(data_filepath) as f:
             data = json.load(f)
 
         groups = defaultdict(list)
@@ -57,7 +57,7 @@ class Methods:
     def expand_selected_items_to_methods(dll_methods: defaultdict, selected):
         launch_info_methods = []
         for item in selected:
-            if item in dll_methods.keys():
+            if item in dll_methods:
                 launch_info_methods.extend(dll_methods[item])
             else:
                 launch_info_methods.append(item)

@@ -222,3 +222,6 @@ frontend/README.md
 #dynamic created files
 frontend/src/components/components/Methods.ts
 backend/resources/dataset.json
+
+# Pre-commit
+.pre-commit-config.local

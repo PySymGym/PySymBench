@@ -1,8 +1,9 @@
-import pytest
 import zipfile
-from unittest.mock import Mock, patch, mock_open, call
+from unittest.mock import Mock, call, mock_open, patch
 
-from backend.utils.results_sender import send_folder_by_email, require_env
+import pytest
+
+from backend.utils.results_sender import require_env, send_folder_by_email
 
 
 def test_require_env_success(monkeypatch):

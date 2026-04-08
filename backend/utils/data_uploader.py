@@ -3,10 +3,10 @@ from collections import defaultdict
 
 from fastapi import UploadFile
 
+from backend.config.paths import LAUNCH_INFO_FILE, MODEL_ONNX_FILE, get_thread_filepath
 from backend.file_utils.csv_methods_writer import write_launch_info_to_csv
 from backend.file_utils.files import save_upload_file
 from backend.utils.methods_handler import Methods
-from backend.config.paths import LAUNCH_INFO_FILE, MODEL_ONNX_FILE, get_thread_filepath
 
 
 def handle_upload(

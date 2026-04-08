@@ -1,10 +1,11 @@
 import os
 import subprocess
+
 from backend.config.paths import (
-    RESOURCES_DIR,
     DATASET_FILE,
     DOCKER_DIR,
     METHODS_TS_FILE,
+    RESOURCES_DIR,
 )
 from backend.utils.methods_handler import Methods
 
