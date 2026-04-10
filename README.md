@@ -64,7 +64,13 @@ cd frontend
 npm install
 ```
 
-3. Start the frontend development server:
+3. Install linter (ESLint) and formatter (Prettier)
+```
+npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin
+npm install -D prettier
+```
+
+4. Start the frontend development server:
 
 ```
 npm run build
