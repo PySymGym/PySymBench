@@ -1,0 +1,4 @@
+method,tests,errors,coverage,total_time_sec
+BinSearchMain,1,1,100.0,0
+Switches1,29,0,100.0,96
+Switches2,1,0,15.0,97
