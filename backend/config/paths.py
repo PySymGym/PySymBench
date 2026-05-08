@@ -1,13 +1,17 @@
 import os
 
 
+def get_tmp_thread_dir(uid):
+    return os.path.join(TMP_FILE_DIR, uid)
+
+
 def get_tmp_thread_files(uid):
     return [get_thread_filepath(uid, UPLOAD_DIR), get_thread_filepath(uid, RESULTS_DIR)]
 
 
 def get_thread_filepath(uid, filepath):
     base_prefix = TMP_FILE_DIR + os.sep
-    new_prefix = f"{TMP_FILE_DIR}/{uid}"
+    new_prefix = os.path.join(TMP_FILE_DIR, uid) + os.sep
     return filepath.replace(base_prefix, new_prefix)
 
 

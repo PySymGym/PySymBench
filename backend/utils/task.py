@@ -1,9 +1,13 @@
+import logging
+
 from celery import Celery
 
-from backend.config.paths import RESULTS_DIR, get_thread_filepath, get_tmp_thread_files
+from backend.config.paths import RESULTS_DIR, get_thread_filepath, get_tmp_thread_dir
 from backend.file_utils.files import reset_dirs
 from backend.utils.docker_runner import run_pipeline
 from backend.utils.results_sender import send_folder_by_email
+
+logger = logging.getLogger(__name__)
 
 celery_app = Celery(
     "tasks", broker="redis://localhost:6379", backend="redis://localhost:6379"
@@ -25,5 +29,8 @@ def process_and_cleanup_task(
             experiment,
             filename,
         )
+    except Exception:
+        logger.exception("Task %s failed", task_uid)
+        raise
     finally:
-        reset_dirs(get_tmp_thread_files(task_uid))
+        reset_dirs([get_tmp_thread_dir(task_uid)])

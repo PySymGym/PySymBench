@@ -47,6 +47,12 @@ async def handle_submit(
     }
 
 
+@app.get("/api/status/{task_uid}")
+async def get_task_status(task_uid: str):
+    result = celery_app.AsyncResult(task_uid)
+    return {"status": result.state, "task_uid": task_uid}
+
+
 @app.post("/api/cancel/{task_uid}")
 async def cancel_task(task_uid: str):
     # Revoke the task if still queued (prevents worker from starting it)

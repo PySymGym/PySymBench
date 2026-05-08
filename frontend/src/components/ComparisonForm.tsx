@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Form, Button, Input, Typography, message, Space } from 'antd';
 import UploadModel from './components/UploadModel';
 import MethodsSelection from './components/MethodsSelection';
@@ -15,6 +15,28 @@ const ComparisonForm: React.FC = () => {
   const [methods, setMethods] = useState<string[]>([]);
   const [currentTaskUid, setCurrentTaskUid] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!currentTaskUid) return;
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/status/${currentTaskUid}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'SUCCESS' || data.status === 'FAILURE') {
+          setCurrentTaskUid(null);
+        }
+      } catch {
+        // ignore transient errors
+      }
+    }, 5000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [currentTaskUid]);
 
   const onFinish = async (values: FieldType) => {
     if (!file) {
