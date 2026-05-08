@@ -17,14 +17,13 @@ def process_and_cleanup_task(
     experiment: str,
     filename: str,
 ):
-    run_pipeline(task_uid)
-
-    send_folder_by_email(
-        email,
-        get_thread_filepath(task_uid, RESULTS_DIR),
-        experiment,
-        filename,
-    )
-
-    tmp_thread_dirs = get_tmp_thread_files(task_uid)
-    reset_dirs(tmp_thread_dirs)
+    try:
+        run_pipeline(task_uid)
+        send_folder_by_email(
+            email,
+            get_thread_filepath(task_uid, RESULTS_DIR),
+            experiment,
+            filename,
+        )
+    finally:
+        reset_dirs(get_tmp_thread_files(task_uid))

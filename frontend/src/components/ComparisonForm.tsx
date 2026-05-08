@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Button, Input, Typography, message } from 'antd';
+import { Form, Button, Input, Typography, message, Space } from 'antd';
 import UploadModel from './components/UploadModel';
 import MethodsSelection from './components/MethodsSelection';
 
@@ -13,6 +13,8 @@ interface FieldType {
 const ComparisonForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [methods, setMethods] = useState<string[]>([]);
+  const [currentTaskUid, setCurrentTaskUid] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const onFinish = async (values: FieldType) => {
     if (!file) {
@@ -23,6 +25,8 @@ const ComparisonForm: React.FC = () => {
       message.error('Please select at least one method.');
       return;
     }
+
+    setCurrentTaskUid(null);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -37,6 +41,7 @@ const ComparisonForm: React.FC = () => {
       });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
+      setCurrentTaskUid(data.task_uid);
       message.success(data.message);
       console.log(data);
     } catch (err) {
@@ -45,7 +50,25 @@ const ComparisonForm: React.FC = () => {
     }
   };
 
-  const onFinishFailed = (errorInfo) => {
+  const onCancel = async () => {
+    if (!currentTaskUid) return;
+    setIsCancelling(true);
+    try {
+      const res = await fetch(`http://localhost:8000/api/cancel/${currentTaskUid}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Cancel failed');
+      setCurrentTaskUid(null);
+      message.success('Experiment cancelled');
+    } catch (err) {
+      console.error(err);
+      message.error('Failed to cancel experiment');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const onFinishFailed = (errorInfo: unknown) => {
     console.log('Failed:', errorInfo);
   };
 
@@ -89,9 +112,16 @@ const ComparisonForm: React.FC = () => {
       </Form.Item>
 
       <Form.Item label={null}>
-        <Button type="primary" htmlType="submit">
-          Submit
-        </Button>
+        <Space>
+          <Button type="primary" htmlType="submit">
+            Submit
+          </Button>
+          {currentTaskUid && (
+            <Button danger onClick={onCancel} loading={isCancelling}>
+              Cancel experiment
+            </Button>
+          )}
+        </Space>
       </Form.Item>
     </Form>
   );

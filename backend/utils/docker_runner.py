@@ -33,6 +33,8 @@ class DockerRunner(ABC):
             "docker",
             "run",
             "--rm",
+            "--name",
+            f"pysymbench-{uid}",
             *self._volumes(uid),
             IMAGE_NAME,
         ]
