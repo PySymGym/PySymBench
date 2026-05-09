@@ -7,6 +7,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+SMTP_TIMEOUT = 15
+
 
 def require_env(name: str) -> str:
     value = os.getenv(name)
@@ -22,10 +24,12 @@ def send_folder_by_email(
     model_file_name: str,
 ):
     load_dotenv()
+
     from_email = require_env("EMAIL")
     from_password = require_env("APP_PASSWORD")
 
     folder = Path(folder_path)
+
     if not folder.exists():
         raise ValueError(f"Folder not found: {folder_path}")
 
@@ -36,6 +40,7 @@ def send_folder_by_email(
             zipf.write(file, file.relative_to(folder))
 
     model_name = model_file_name[:-5]
+
     msg = EmailMessage()
     msg["From"] = from_email
     msg["To"] = to_email
@@ -43,8 +48,8 @@ def send_folder_by_email(
 
     message = (
         f"\n\n"
-        f"The results of the experiment '{experiment_name}' using the model '{model_name}' are ready. "
-        f"Please find the details in the attached ZIP file.\n\n"
+        f"The results of the experiment '{experiment_name}' "
+        f"using the model '{model_name}' are ready.\n\n"
         f"Contents of the ZIP:\n"
         f" - Model run results: artifact_run_ai folder\n"
         f" - Baseline run results: artifact_run_baseline folder\n"
@@ -58,18 +63,31 @@ def send_folder_by_email(
             f.read(),
             maintype="application",
             subtype="zip",
-            filename="results",
+            filename="results.zip",
         )
 
     context = ssl.create_default_context()
 
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
+        with smtplib.SMTP(
+            "smtp.gmail.com",
+            587,
+            timeout=SMTP_TIMEOUT,
+        ) as server:
             server.ehlo()
+
             server.starttls(context=context)
+
             server.ehlo()
+
             server.login(from_email, from_password)
+
             server.send_message(msg)
+
+    except (smtplib.SMTPException, TimeoutError, OSError) as e:
+        print("Email sending failed:", e)
+        raise
+
     finally:
         if zip_path.exists():
             os.remove(zip_path)
