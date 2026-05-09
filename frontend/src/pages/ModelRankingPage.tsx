@@ -13,9 +13,14 @@ const ModelRankingPage: React.FC = () => {
         title="Model Ranking"
         subTitle="The leaderboard is coming soon. Check back after running your first experiments."
         extra={
-          <Button type="primary" onClick={() => navigate('/')}>
-            Back to Home
-          </Button>
+          <div>
+            <Button type="primary" onClick={() => navigate('/')}>
+              Back to Home
+            </Button>
+            <Button type="primary" onClick={() => navigate('/publish')}>
+              Add your experiment to leaderboard
+            </Button>
+          </div>
         }
       />
     </div>

@@ -28,7 +28,7 @@ const CARDS = [
       'Explore the leaderboard of all evaluated models ranked by their symbolic execution performance metrics across the benchmark dataset.',
     action: 'View Ranking',
     path: '/ranking',
-    available: false,
+    available: true,
     borderColor: '#faad14',
   },
   {
