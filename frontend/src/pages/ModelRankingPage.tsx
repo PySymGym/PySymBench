@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Result } from 'antd';
-import { TrophyOutlined } from '@ant-design/icons';
+import { Button, Result, Space } from 'antd';
+import { TrophyOutlined, PlusOutlined } from '@ant-design/icons';
 
 const ModelRankingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,14 +13,18 @@ const ModelRankingPage: React.FC = () => {
         title="Model Ranking"
         subTitle="The leaderboard is coming soon. Check back after running your first experiments."
         extra={
-          <div>
+          <Space>
             <Button type="primary" onClick={() => navigate('/')}>
               Back to Home
             </Button>
-            <Button type="primary" onClick={() => navigate('/publish')}>
-              Add your experiment to leaderboard
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/ranking/publish')}
+            >
+              Publish experiment
             </Button>
-          </div>
+          </Space>
         }
       />
     </div>
