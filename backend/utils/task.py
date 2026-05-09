@@ -15,6 +15,8 @@ celery_app = Celery(
 celery_app.conf.update(
     worker_hijack_root_logger=False,
     task_track_started=True,
+    task_acks_late=True,
+    worker_prefetch_multiplier=1,
 )
 
 
@@ -48,16 +50,7 @@ def process_and_cleanup_task(
         logger.exception("Task %s failed", task_uid)
 
     finally:
-        logger.info("ENTER FINALLY %s", task_uid)
-
         try:
-            path = get_tmp_thread_files(task_uid)
-
-            logger.info("Cleaning path: %s", path)
-
-            reset_dirs(path)
-
-            logger.info("CLEANUP DONE %s", task_uid)
-
+            reset_dirs(get_tmp_thread_files(task_uid))
         except Exception:
             logger.warning("Cleanup failed for %s", task_uid)

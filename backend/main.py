@@ -35,6 +35,7 @@ async def handle_submit(
     process_and_cleanup_task.apply_async(
         args=[task_uid, email, experiment, file.filename],
         task_id=task_uid,
+        queue="celery",
     )
 
     return {

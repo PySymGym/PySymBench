@@ -1,3 +1,4 @@
+import logging
 import os
 import smtplib
 import ssl
@@ -6,6 +7,8 @@ from email.message import EmailMessage
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 SMTP_TIMEOUT = 15
 
@@ -84,8 +87,8 @@ def send_folder_by_email(
 
             server.send_message(msg)
 
-    except (smtplib.SMTPException, TimeoutError, OSError) as e:
-        print("Email sending failed:", e)
+    except (smtplib.SMTPException, TimeoutError, OSError):
+        logger.exception("Email sending failed")
         raise
 
     finally:

@@ -26,7 +26,7 @@ class DockerRunner(ABC):
 
     def run(self, uid) -> None:
         cmd = self._docker_cmd(uid) + self._tool_cmd()
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, capture_output=True)
 
     def _docker_cmd(self, uid) -> list[str]:
         return [
