@@ -74,7 +74,7 @@ def test_send_folder_by_email_success(
         assert "file2.txt" in file_list
         assert "subfolder/file3.txt" in file_list
 
-    mock_smtp.assert_called_once_with("smtp.gmail.com", 587, timeout=30)
+    mock_smtp.assert_called_once_with("smtp.gmail.com", 587, timeout=15)
     mock_server_instance.ehlo.assert_called()
     mock_server_instance.starttls.assert_called_once()
     mock_server_instance.login.assert_called_once_with(
@@ -240,4 +240,4 @@ def test_email_content_structure(
 
     attachment = sent_msg.get_payload()[1]
     assert attachment.get_content_type() == "application/zip"
-    assert attachment.get_filename() == "results"
+    assert attachment.get_filename() == "results.zip"
