@@ -137,3 +137,7 @@ def run_pipeline(uid) -> None:
     RunstratBaseline().run(uid)
     RunstratAI().run(uid)
     Compstrat().run(uid)
+
+
+def run_publish_pipeline(uid) -> None:
+    RunstratAI().run(uid)

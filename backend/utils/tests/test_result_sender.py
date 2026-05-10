@@ -3,7 +3,12 @@ from unittest.mock import Mock, call, mock_open, patch
 
 import pytest
 
-from backend.utils.results_sender import require_env, send_folder_by_email
+from backend.file_utils.runstrat_metrics import RunstratMetrics
+from backend.utils.results_sender import (
+    require_env,
+    send_folder_by_email,
+    send_publish_results_by_email,
+)
 
 
 def test_require_env_success(monkeypatch):
@@ -241,3 +246,137 @@ def test_email_content_structure(
     attachment = sent_msg.get_payload()[1]
     assert attachment.get_content_type() == "application/zip"
     assert attachment.get_filename() == "results.zip"
+
+
+FAKE_METRICS = RunstratMetrics(
+    total_tests=20,
+    total_errors=3,
+    mean_coverage=0.65,
+    median_coverage=0.70,
+    total_time_sec=88.5,
+)
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_publish_results_success(
+    mock_smtp,
+    mock_require_env,
+    mock_load_dotenv,
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    send_publish_results_by_email(
+        to_email="recipient@example.com",
+        metrics=FAKE_METRICS,
+        experiment_name="exp",
+        model_file_name="model.onnx",
+    )
+
+    mock_load_dotenv.assert_called_once()
+    assert mock_require_env.call_count == 2
+    mock_server_instance.send_message.assert_called_once()
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_publish_results_email_subject(
+    mock_smtp,
+    mock_require_env,
+    mock_load_dotenv,
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    send_publish_results_by_email(
+        to_email="recipient@example.com",
+        metrics=FAKE_METRICS,
+        experiment_name="my_exp",
+        model_file_name="net.onnx",
+    )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    assert sent_msg["Subject"] == "Results of my_exp with net"
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_publish_results_body_contains_metrics(
+    mock_smtp,
+    mock_require_env,
+    mock_load_dotenv,
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    send_publish_results_by_email(
+        to_email="recipient@example.com",
+        metrics=FAKE_METRICS,
+        experiment_name="exp",
+        model_file_name="model.onnx",
+    )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    body = sent_msg.get_body().get_content()
+    assert "20" in body
+    assert "3" in body
+    assert "0.6500" in body
+    assert "0.7000" in body
+    assert "88.50" in body
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_publish_results_no_attachment(
+    mock_smtp,
+    mock_require_env,
+    mock_load_dotenv,
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    send_publish_results_by_email(
+        to_email="recipient@example.com",
+        metrics=FAKE_METRICS,
+        experiment_name="exp",
+        model_file_name="model.onnx",
+    )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    assert not sent_msg.is_multipart()
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_publish_results_smtp_error_reraises(
+    mock_smtp,
+    mock_require_env,
+    mock_load_dotenv,
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    mock_server_instance = Mock()
+    mock_server_instance.send_message.side_effect = Exception("SMTP Error")
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    with pytest.raises(Exception, match="SMTP Error"):
+        send_publish_results_by_email(
+            to_email="recipient@example.com",
+            metrics=FAKE_METRICS,
+            experiment_name="exp",
+            model_file_name="model.onnx",
+        )

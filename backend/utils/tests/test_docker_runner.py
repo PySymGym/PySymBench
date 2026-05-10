@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -8,7 +9,12 @@ from backend.config.paths import (
     BASE_DIR,
 )
 from backend.utils import docker_runner
-from backend.utils.docker_runner import Compstrat, RunstratAI, RunstratBaseline
+from backend.utils.docker_runner import (
+    Compstrat,
+    RunstratAI,
+    RunstratBaseline,
+    run_publish_pipeline,
+)
 
 TEST_RESOURCES_DIR = BASE_DIR + "/utils/tests/resources/"
 TEST_ARTIFACTS_BASELINE_CSV_FILE = (
@@ -55,3 +61,17 @@ def test_runstrat_ai(test_env):
 def test_compstrat(test_env):
     uid = "test"
     Compstrat().run(uid)
+
+
+def test_run_publish_pipeline_calls_only_runstrat_ai():
+    uid = "test"
+    with (
+        patch.object(RunstratAI, "run") as mock_ai,
+        patch.object(RunstratBaseline, "run") as mock_baseline,
+        patch.object(Compstrat, "run") as mock_compstrat,
+    ):
+        run_publish_pipeline(uid)
+
+    mock_ai.assert_called_once_with(uid)
+    mock_baseline.assert_not_called()
+    mock_compstrat.assert_not_called()
