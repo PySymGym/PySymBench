@@ -29,6 +29,7 @@ jobs:
           cat > .env << EOF
           EMAIL=test@example.com
           APP_PASSWORD=test_password_123
+          DB_URL=sqlite://
           EOF
 
       - name: Run Python tests
