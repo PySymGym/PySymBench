@@ -64,11 +64,13 @@ const columns: ColumnsType<RankingEntry> = [
     dataIndex: 'median_coverage',
     key: 'median_coverage',
     render: (v: number) => v.toFixed(4),
+    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
   },
   {
     title: 'Total Tests',
     dataIndex: 'total_tests',
     key: 'total_tests',
+    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
   },
   {
     title: 'Errors',
@@ -77,18 +79,21 @@ const columns: ColumnsType<RankingEntry> = [
     render: (v: number) => (
       <span style={{ color: v > 0 ? '#ff4d4f' : 'inherit' }}>{v}</span>
     ),
+    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
   },
   {
     title: 'Time (s)',
     dataIndex: 'total_time_sec',
     key: 'total_time_sec',
     render: (v: number) => v.toFixed(2),
+    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
   },
   {
     title: 'Published',
     dataIndex: 'created_at',
     key: 'created_at',
     render: (v: string) => new Date(v).toLocaleDateString(),
+    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
   },
 ];
 
