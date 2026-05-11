@@ -79,6 +79,18 @@ docker run --name minio -p 9000:9000 -p 9001:9001 \
 
 ---
 
+## Redis (Celery Broker)
+
+By default, the Celery broker is expected at `redis://localhost:6379`. To use a remote Redis instance (e.g., for running Celery workers on separate machines), set `REDIS_URL` in your `.env` file:
+
+```
+REDIS_URL=redis://<host>:6379
+```
+
+All services that connect to Redis — the FastAPI app and every Celery worker — must have the same `REDIS_URL`. Workers on remote machines need only the `backend/` code, Docker, and access to the shared Redis instance.
+
+---
+
 ## Backend Setup
 
 1. Install **Python 3.14** and **Docker**, then install the project dependencies:
