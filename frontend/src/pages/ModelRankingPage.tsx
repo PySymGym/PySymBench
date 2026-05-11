@@ -57,20 +57,20 @@ const columns: ColumnsType<RankingEntry> = [
     dataIndex: 'mean_coverage',
     key: 'mean_coverage',
     render: (v: number) => v.toFixed(4),
-    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
+    sorter: (a, b) => a.mean_coverage - b.mean_coverage,
   },
   {
     title: 'Median Coverage',
     dataIndex: 'median_coverage',
     key: 'median_coverage',
     render: (v: number) => v.toFixed(4),
-    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
+    sorter: (a, b) => a.median_coverage - b.median_coverage,
   },
   {
     title: 'Total Tests',
     dataIndex: 'total_tests',
     key: 'total_tests',
-    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
+    sorter: (a, b) => a.total_tests - b.total_tests,
   },
   {
     title: 'Errors',
@@ -79,21 +79,22 @@ const columns: ColumnsType<RankingEntry> = [
     render: (v: number) => (
       <span style={{ color: v > 0 ? '#ff4d4f' : 'inherit' }}>{v}</span>
     ),
-    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
+    sorter: (a, b) => a.total_errors - b.total_errors,
   },
   {
     title: 'Time (s)',
     dataIndex: 'total_time_sec',
     key: 'total_time_sec',
     render: (v: number) => v.toFixed(2),
-    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
+    sorter: (a, b) => a.total_time_sec - b.total_time_sec,
   },
   {
     title: 'Published',
     dataIndex: 'created_at',
     key: 'created_at',
     render: (v: string) => new Date(v).toLocaleDateString(),
-    sorter: (a, b) => b.mean_coverage - a.mean_coverage,
+    sorter: (a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   },
 ];
 
