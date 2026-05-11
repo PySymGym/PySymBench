@@ -16,6 +16,7 @@ interface RankingEntry {
   mean_coverage: number;
   median_coverage: number;
   total_time_sec: number;
+  is_baseline: boolean;
   model_object_key: string | null;
   results_object_key: string | null;
   created_at: string;
@@ -51,6 +52,16 @@ const columns: ColumnsType<RankingEntry> = [
     title: 'Model',
     dataIndex: 'model_name',
     key: 'model_name',
+    render: (v: string, record: RankingEntry) => (
+      <span>
+        {v}
+        {record.is_baseline && (
+          <Tag color="blue" style={{ marginLeft: 8 }}>
+            Baseline
+          </Tag>
+        )}
+      </span>
+    ),
   },
   {
     title: 'Mean Coverage',
@@ -139,6 +150,16 @@ const ModelRankingPage: React.FC = () => {
           loading={loading}
           pagination={false}
           locale={{ emptyText: 'No experiments published yet.' }}
+          onRow={(record) =>
+            record.is_baseline
+              ? {
+                  style: {
+                    background: '#e6f4ff',
+                    borderLeft: '3px solid #1677ff',
+                  },
+                }
+              : {}
+          }
         />
       </div>
     </div>

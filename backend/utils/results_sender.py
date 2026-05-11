@@ -119,6 +119,51 @@ def send_folder_by_email(
             os.remove(zip_path)
 
 
+def send_task_started_email(
+    to_email: str,
+    experiment_name: str,
+    model_file_name: str,
+    cancel_url: str,
+):
+    load_dotenv()
+
+    from_email = require_env("EMAIL")
+    from_password = require_env("APP_PASSWORD")
+
+    model_name = (
+        model_file_name[:-5] if model_file_name.endswith(".onnx") else model_file_name
+    )
+
+    msg = EmailMessage()
+    msg["From"] = from_email
+    msg["To"] = to_email
+    msg["Subject"] = f"Experiment '{experiment_name}' has started"
+
+    body = (
+        f"\n\n"
+        f"Your experiment '{experiment_name}' using model '{model_name}' "
+        f"has been submitted and is now running.\n\n"
+        f"If you want to cancel it, open the link below:\n"
+        f"{cancel_url}\n\n"
+        f"The link expires in 24 hours.\n"
+    )
+
+    msg.set_content(body)
+
+    context = ssl.create_default_context()
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=SMTP_TIMEOUT) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except (smtplib.SMTPException, TimeoutError, OSError):
+        logger.exception("Email sending failed")
+        raise
+
+
 def send_publish_results_by_email(
     to_email: str,
     metrics: RunstratMetrics,

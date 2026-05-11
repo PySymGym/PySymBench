@@ -1,6 +1,8 @@
 import os
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 
 def get_tmp_thread_files(uid):

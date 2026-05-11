@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Button, Input, Typography, message, Space } from 'antd';
+import { Alert, Form, Button, Input, Typography, message } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import UploadModel from '../components/components/UploadModel';
 
@@ -14,30 +14,7 @@ interface FieldType {
 const PublishExperimentPage: React.FC = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [currentTaskUid, setCurrentTaskUid] = useState<string | null>(null);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!currentTaskUid) return;
-
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`http://localhost:8000/api/status/${currentTaskUid}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.status === 'SUCCESS' || data.status === 'FAILURE') {
-          setCurrentTaskUid(null);
-        }
-      } catch {
-        // ignore transient errors
-      }
-    }, 5000);
-
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [currentTaskUid]);
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const onFinish = async (values: FieldType) => {
     if (!file) {
@@ -45,7 +22,7 @@ const PublishExperimentPage: React.FC = () => {
       return;
     }
 
-    setCurrentTaskUid(null);
+    setSubmittedEmail(null);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -59,29 +36,11 @@ const PublishExperimentPage: React.FC = () => {
       });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      setCurrentTaskUid(data.task_uid);
+      setSubmittedEmail(values.email);
       message.success(data.message);
     } catch (err) {
       console.error(err);
       message.error('Submission failed');
-    }
-  };
-
-  const onCancel = async () => {
-    if (!currentTaskUid) return;
-    setIsCancelling(true);
-    try {
-      const res = await fetch(`http://localhost:8000/api/cancel/${currentTaskUid}`, {
-        method: 'POST',
-      });
-      if (!res.ok) throw new Error('Cancel failed');
-      setCurrentTaskUid(null);
-      message.success('Experiment cancelled');
-    } catch (err) {
-      console.error(err);
-      message.error('Failed to cancel experiment');
-    } finally {
-      setIsCancelling(false);
     }
   };
 
@@ -131,18 +90,21 @@ const PublishExperimentPage: React.FC = () => {
           </Form.Item>
 
           <Form.Item label={null}>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                Submit
-              </Button>
-              {currentTaskUid && (
-                <Button danger onClick={onCancel} loading={isCancelling}>
-                  Cancel experiment
-                </Button>
-              )}
-            </Space>
+            <Button type="primary" htmlType="submit">
+              Submit
+            </Button>
           </Form.Item>
         </Form>
+
+        {submittedEmail && (
+          <Alert
+            type="info"
+            showIcon
+            message="Experiment submitted"
+            description={`Your experiment is being published. A cancellation link has been sent to ${submittedEmail}.`}
+            style={{ marginTop: 16 }}
+          />
+        )}
       </div>
     </div>
   );

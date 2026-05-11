@@ -19,6 +19,7 @@ class ExperimentRecord:
     mean_coverage: float
     median_coverage: float
     total_time_sec: float
+    is_baseline: bool
     model_object_key: str | None
     results_object_key: str | None
     created_at: str
@@ -29,6 +30,7 @@ def save_experiment(
     model_name: str,
     email: str,
     metrics: RunstratMetrics,
+    is_baseline: bool = False,
     model_object_key: str | None = None,
     results_object_key: str | None = None,
 ) -> int:
@@ -42,6 +44,7 @@ def save_experiment(
             mean_coverage=metrics.mean_coverage,
             median_coverage=metrics.median_coverage,
             total_time_sec=metrics.total_time_sec,
+            is_baseline=is_baseline,
             model_object_key=model_object_key,
             results_object_key=results_object_key,
         )
@@ -66,6 +69,7 @@ def get_all_experiments() -> list[ExperimentRecord]:
                 mean_coverage=r.mean_coverage,
                 median_coverage=r.median_coverage,
                 total_time_sec=r.total_time_sec,
+                is_baseline=r.is_baseline,
                 model_object_key=r.model_object_key,
                 results_object_key=r.results_object_key,
                 created_at=r.created_at.isoformat(),

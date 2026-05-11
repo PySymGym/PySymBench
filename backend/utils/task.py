@@ -24,6 +24,7 @@ from backend.utils.results_sender import (
     send_folder_by_email,
     send_publish_results_by_email,
 )
+from backend.utils.token_store import mark_task_completed
 
 celery_app = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
 
@@ -73,6 +74,7 @@ def process_and_cleanup_task(
 
     finally:
         try:
+            mark_task_completed(task_uid)
             reset_dirs(get_tmp_thread_files(task_uid))
         except Exception:
             logger.warning("Cleanup failed for %s", task_uid)
@@ -125,6 +127,7 @@ def publish_and_cleanup_task(
 
     finally:
         try:
+            mark_task_completed(task_uid)
             reset_dirs(get_tmp_thread_files(task_uid))
         except Exception:
             logger.warning("Cleanup failed for %s", task_uid)

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Float, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.db.database import Base
@@ -18,6 +18,7 @@ class Experiment(Base):
     mean_coverage: Mapped[float] = mapped_column(Float, nullable=False)
     median_coverage: Mapped[float] = mapped_column(Float, nullable=False)
     total_time_sec: Mapped[float] = mapped_column(Float, nullable=False)
+    is_baseline: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     model_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     results_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
