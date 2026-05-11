@@ -22,17 +22,20 @@ FAKE_METRICS = RunstratMetrics(
 @pytest.fixture
 def mock_task_deps(monkeypatch):
     mock_run = MagicMock()
+    mock_run_m2m = MagicMock()
     mock_send = MagicMock()
     mock_reset = MagicMock()
     mock_get_files = MagicMock(return_value=["/tmp/fake/uploads", "/tmp/fake/results"])
 
     monkeypatch.setattr(task_module, "run_pipeline", mock_run)
+    monkeypatch.setattr(task_module, "run_model_vs_model_pipeline", mock_run_m2m)
     monkeypatch.setattr(task_module, "send_folder_by_email", mock_send)
     monkeypatch.setattr(task_module, "reset_dirs", mock_reset)
     monkeypatch.setattr(task_module, "get_tmp_thread_files", mock_get_files)
 
     return {
         "run_pipeline": mock_run,
+        "run_model_vs_model_pipeline": mock_run_m2m,
         "send_email": mock_send,
         "reset_dirs": mock_reset,
         "get_tmp_thread_files": mock_get_files,
@@ -64,6 +67,36 @@ def test_task_sends_email_on_success(mock_task_deps):
 def test_task_cleanup_receives_correct_uid(mock_task_deps):
     task_module.process_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
     mock_task_deps["get_tmp_thread_files"].assert_called_once_with(TASK_UID)
+
+
+def test_task_uses_baseline_pipeline_by_default(mock_task_deps):
+    task_module.process_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
+    mock_task_deps["run_pipeline"].assert_called_once_with(TASK_UID)
+    mock_task_deps["run_model_vs_model_pipeline"].assert_not_called()
+
+
+def test_task_uses_model_vs_model_pipeline(mock_task_deps):
+    task_module.process_and_cleanup_task.run(
+        TASK_UID, "a@b.com", "exp", "model.onnx", "model", "model2.onnx"
+    )
+    mock_task_deps["run_model_vs_model_pipeline"].assert_called_once_with(TASK_UID)
+    mock_task_deps["run_pipeline"].assert_not_called()
+
+
+def test_task_sends_email_with_comparison_mode_and_filename2(mock_task_deps):
+    task_module.process_and_cleanup_task.run(
+        TASK_UID, "a@b.com", "exp", "model.onnx", "model", "model2.onnx"
+    )
+    _, kwargs = mock_task_deps["send_email"].call_args
+    assert kwargs["comparison_mode"] == "model"
+    assert kwargs["model2_file_name"] == "model2.onnx"
+
+
+def test_task_sends_baseline_mode_in_email_by_default(mock_task_deps):
+    task_module.process_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
+    _, kwargs = mock_task_deps["send_email"].call_args
+    assert kwargs["comparison_mode"] == "baseline"
+    assert kwargs["model2_file_name"] is None
 
 
 @pytest.fixture

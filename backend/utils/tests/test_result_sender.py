@@ -380,3 +380,125 @@ def test_send_publish_results_smtp_error_reraises(
             experiment_name="exp",
             model_file_name="model.onnx",
         )
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_folder_model_vs_model_subject(
+    mock_smtp, mock_require_env, mock_load_dotenv, tmp_path
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    test_folder = tmp_path / "results"
+    test_folder.mkdir()
+    (test_folder / "file.txt").write_text("content")
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    with patch("builtins.open", mock_open(read_data=b"zip content")):
+        send_folder_by_email(
+            to_email="recipient@example.com",
+            folder_path=str(test_folder),
+            experiment_name="my_exp",
+            model_file_name="model1.onnx",
+            comparison_mode="model",
+            model2_file_name="model2.onnx",
+        )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    assert sent_msg["Subject"] == "Results of my_exp: model1 vs model2"
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_folder_model_vs_model_body(
+    mock_smtp, mock_require_env, mock_load_dotenv, tmp_path
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    test_folder = tmp_path / "results"
+    test_folder.mkdir()
+    (test_folder / "file.txt").write_text("content")
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    with patch("builtins.open", mock_open(read_data=b"zip content")):
+        send_folder_by_email(
+            to_email="recipient@example.com",
+            folder_path=str(test_folder),
+            experiment_name="my_exp",
+            model_file_name="model1.onnx",
+            comparison_mode="model",
+            model2_file_name="model2.onnx",
+        )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    body = sent_msg.get_body().get_content()
+    assert "model1" in body
+    assert "model2" in body
+    assert "artifacts_run_ai2" in body
+    assert "Model 1" in body
+    assert "Model 2" in body
+    assert "compstrat_results" in body
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_folder_baseline_subject_unchanged(
+    mock_smtp, mock_require_env, mock_load_dotenv, tmp_path
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    test_folder = tmp_path / "results"
+    test_folder.mkdir()
+    (test_folder / "file.txt").write_text("content")
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    with patch("builtins.open", mock_open(read_data=b"zip content")):
+        send_folder_by_email(
+            to_email="recipient@example.com",
+            folder_path=str(test_folder),
+            experiment_name="my_exp",
+            model_file_name="model.onnx",
+            comparison_mode="baseline",
+        )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    assert sent_msg["Subject"] == "Results of my_exp with model"
+
+
+@patch("backend.utils.results_sender.load_dotenv")
+@patch("backend.utils.results_sender.require_env")
+@patch("backend.utils.results_sender.smtplib.SMTP")
+def test_send_folder_baseline_body_mentions_baseline_artifacts(
+    mock_smtp, mock_require_env, mock_load_dotenv, tmp_path
+):
+    mock_require_env.side_effect = ["sender@gmail.com", "app_password"]
+
+    test_folder = tmp_path / "results"
+    test_folder.mkdir()
+    (test_folder / "file.txt").write_text("content")
+
+    mock_server_instance = Mock()
+    mock_smtp.return_value.__enter__.return_value = mock_server_instance
+
+    with patch("builtins.open", mock_open(read_data=b"zip content")):
+        send_folder_by_email(
+            to_email="recipient@example.com",
+            folder_path=str(test_folder),
+            experiment_name="my_exp",
+            model_file_name="model.onnx",
+        )
+
+    sent_msg = mock_server_instance.send_message.call_args[0][0]
+    body = sent_msg.get_body().get_content()
+    assert "artifacts_run_baseline" in body
+    assert "artifacts_run_ai" in body
+    assert "artifacts_run_ai2" not in body

@@ -15,7 +15,11 @@ from backend.db.repository import save_experiment
 from backend.file_utils.files import reset_dirs
 from backend.file_utils.runstrat_metrics import compute_metrics
 from backend.storage.minio_client import upload_file
-from backend.utils.docker_runner import run_pipeline, run_publish_pipeline
+from backend.utils.docker_runner import (
+    run_model_vs_model_pipeline,
+    run_pipeline,
+    run_publish_pipeline,
+)
 from backend.utils.results_sender import (
     send_folder_by_email,
     send_publish_results_by_email,
@@ -48,14 +52,21 @@ def process_and_cleanup_task(
     email: str,
     experiment: str,
     filename: str,
+    comparison_mode: str = "baseline",
+    filename2: str | None = None,
 ):
     try:
-        run_pipeline(task_uid)
+        if comparison_mode == "model":
+            run_model_vs_model_pipeline(task_uid)
+        else:
+            run_pipeline(task_uid)
         send_folder_by_email(
             email,
             get_thread_filepath(task_uid, RESULTS_DIR),
             experiment,
             filename,
+            comparison_mode=comparison_mode,
+            model2_file_name=filename2,
         )
     except Exception:
         logger.exception("Task %s failed", task_uid)

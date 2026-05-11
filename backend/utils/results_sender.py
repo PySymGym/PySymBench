@@ -27,6 +27,8 @@ def send_folder_by_email(
     folder_path: str,
     experiment_name: str,
     model_file_name: str,
+    comparison_mode: str = "baseline",
+    model2_file_name: str | None = None,
 ):
     load_dotenv()
 
@@ -44,22 +46,41 @@ def send_folder_by_email(
         for file in folder.rglob("*"):
             zipf.write(file, file.relative_to(folder))
 
-    model_name = model_file_name[:-5]
+    model_name = (
+        model_file_name[:-5] if model_file_name.endswith(".onnx") else model_file_name
+    )
 
     msg = EmailMessage()
     msg["From"] = from_email
     msg["To"] = to_email
-    msg["Subject"] = f"Results of {experiment_name} with {model_name}"
 
-    message = (
-        f"\n\n"
-        f"The results of the experiment '{experiment_name}' "
-        f"using the model '{model_name}' are ready.\n\n"
-        f"Contents of the ZIP:\n"
-        f" - Model run results: artifact_run_ai folder\n"
-        f" - Baseline run results: artifact_run_baseline folder\n"
-        f" - Comparison with baseline: compstrat_results folder\n\n"
-    )
+    if comparison_mode == "model" and model2_file_name:
+        model2_name = (
+            model2_file_name[:-5]
+            if model2_file_name.endswith(".onnx")
+            else model2_file_name
+        )
+        msg["Subject"] = f"Results of {experiment_name}: {model_name} vs {model2_name}"
+        message = (
+            f"\n\n"
+            f"The results of the experiment '{experiment_name}' comparing "
+            f"'{model_name}' against '{model2_name}' are ready.\n\n"
+            f"Contents of the ZIP:\n"
+            f" - Model 1 run results: artifacts_run_ai folder\n"
+            f" - Model 2 run results: artifacts_run_ai2 folder\n"
+            f" - Comparison between models: compstrat_results folder\n\n"
+        )
+    else:
+        msg["Subject"] = f"Results of {experiment_name} with {model_name}"
+        message = (
+            f"\n\n"
+            f"The results of the experiment '{experiment_name}' "
+            f"using the model '{model_name}' are ready.\n\n"
+            f"Contents of the ZIP:\n"
+            f" - Model run results: artifacts_run_ai folder\n"
+            f" - Baseline run results: artifacts_run_baseline folder\n"
+            f" - Comparison with baseline: compstrat_results folder\n\n"
+        )
 
     msg.set_content(message)
 

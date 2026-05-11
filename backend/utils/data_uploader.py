@@ -7,6 +7,7 @@ from fastapi import UploadFile
 
 from backend.config.paths import (
     LAUNCH_INFO_FILE,
+    MODEL2_ONNX_FILE,
     MODEL_ONNX_FILE,
     RANKING_LAUNCH_INFO_FILE,
     get_thread_filepath,
@@ -21,12 +22,16 @@ def handle_upload(
     file: UploadFile,
     methods: str,
     dataset_dll_and_methods: defaultdict,
+    file2: UploadFile | None = None,
 ) -> None:
     launch_methods = Methods.expand_selected_items_to_methods(
         dataset_dll_and_methods, json.loads(methods)
     )
 
     save_upload_file(file, get_thread_filepath(uid, MODEL_ONNX_FILE))
+
+    if file2 is not None:
+        save_upload_file(file2, get_thread_filepath(uid, MODEL2_ONNX_FILE))
 
     write_launch_info_to_csv(
         parsed_methods=launch_methods,

@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from backend.config.paths import (
+    ARTIFACTS_AI2_CSV_FILE,
     ARTIFACTS_AI_CSV_FILE,
     ARTIFACTS_BASELINE_CSV_FILE,
     BASE_DIR,
@@ -12,7 +13,10 @@ from backend.utils import docker_runner
 from backend.utils.docker_runner import (
     Compstrat,
     RunstratAI,
+    RunstratAI2,
     RunstratBaseline,
+    run_model_vs_model_pipeline,
+    run_pipeline,
     run_publish_pipeline,
 )
 
@@ -21,6 +25,7 @@ TEST_ARTIFACTS_BASELINE_CSV_FILE = (
     TEST_RESOURCES_DIR + "ExecutionTreeContributedCoverage.csv"
 )
 TEST_ARTIFACTS_AI_CSV_FILE = TEST_RESOURCES_DIR + "AI.csv"
+TEST_ARTIFACTS_AI2_CSV_FILE = TEST_RESOURCES_DIR + "AI.csv"
 
 
 @pytest.fixture
@@ -33,6 +38,8 @@ def test_env(tmp_path, monkeypatch):
             return filepath.replace("tmp/uploads", "utils/tests/resources")
         if filepath == ARTIFACTS_AI_CSV_FILE:
             return TEST_ARTIFACTS_AI_CSV_FILE
+        if filepath == ARTIFACTS_AI2_CSV_FILE:
+            return TEST_ARTIFACTS_AI2_CSV_FILE
         if filepath == ARTIFACTS_BASELINE_CSV_FILE:
             return TEST_ARTIFACTS_BASELINE_CSV_FILE
 
@@ -58,9 +65,61 @@ def test_runstrat_ai(test_env):
     RunstratAI().run(uid)
 
 
+def test_runstrat_ai2(test_env):
+    uid = "test"
+    RunstratAI2().run(uid)
+
+
 def test_compstrat(test_env):
     uid = "test"
-    Compstrat().run(uid)
+    Compstrat("BASELINE", ARTIFACTS_BASELINE_CSV_FILE, "AI", ARTIFACTS_AI_CSV_FILE).run(
+        uid
+    )
+
+
+def test_compstrat_model_vs_model(test_env):
+    uid = "test"
+    Compstrat("MODEL1", ARTIFACTS_AI_CSV_FILE, "MODEL2", ARTIFACTS_AI2_CSV_FILE).run(
+        uid
+    )
+
+
+def test_run_pipeline_calls_all_runners_in_order():
+    uid = "test"
+    call_order = []
+
+    with (
+        patch.object(
+            RunstratBaseline, "run", side_effect=lambda u: call_order.append("baseline")
+        ),
+        patch.object(RunstratAI, "run", side_effect=lambda u: call_order.append("ai")),
+        patch.object(
+            Compstrat, "run", side_effect=lambda u: call_order.append("compstrat")
+        ),
+    ):
+        run_pipeline(uid)
+
+    assert call_order == ["baseline", "ai", "compstrat"]
+
+
+def test_run_model_vs_model_pipeline_calls_in_order():
+    uid = "test"
+    call_order = []
+
+    with (
+        patch.object(RunstratAI, "run", side_effect=lambda u: call_order.append("ai")),
+        patch.object(
+            RunstratAI2, "run", side_effect=lambda u: call_order.append("ai2")
+        ),
+        patch.object(
+            Compstrat, "run", side_effect=lambda u: call_order.append("compstrat")
+        ),
+        patch.object(RunstratBaseline, "run") as mock_baseline,
+    ):
+        run_model_vs_model_pipeline(uid)
+
+    assert call_order == ["ai", "ai2", "compstrat"]
+    mock_baseline.assert_not_called()
 
 
 def test_run_publish_pipeline_calls_only_runstrat_ai():

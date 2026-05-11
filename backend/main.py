@@ -37,12 +37,21 @@ async def handle_submit(
     email: str = Form(...),
     methods: str = Form(...),
     experiment: str = Form(...),
+    file2: UploadFile | None = None,
+    comparison_mode: str = Form("baseline"),
 ):
     task_uid = str(shortuuid.uuid())
 
-    handle_upload(task_uid, file, methods, DATASET_DLLS_AND_METHODS)
+    handle_upload(task_uid, file, methods, DATASET_DLLS_AND_METHODS, file2)
     process_and_cleanup_task.apply_async(
-        args=[task_uid, email, experiment, file.filename],
+        args=[
+            task_uid,
+            email,
+            experiment,
+            file.filename,
+            comparison_mode,
+            file2.filename if file2 else None,
+        ],
         task_id=task_uid,
         queue="celery",
     )

@@ -30,6 +30,8 @@ METHODS_TS_FILE = os.path.join(
 )
 COMPSTRAT_RESULTS_DIR = os.path.join(RESULTS_DIR, "compstrat_results")
 ARTIFACTS_AI_CSV_FILE = os.path.join(RESULTS_DIR, "artifacts_run_ai/AI.csv")
+ARTIFACTS_AI2_CSV_FILE = os.path.join(RESULTS_DIR, "artifacts_run_ai2/AI.csv")
 ARTIFACTS_BASELINE_CSV_FILE = os.path.join(
     RESULTS_DIR, "artifacts_run_baseline/ExecutionTreeContributedCoverage.csv"
 )
+MODEL2_ONNX_FILE = os.path.join(UPLOAD_DIR, "model2.onnx")
