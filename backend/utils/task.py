@@ -6,6 +6,7 @@ from celery.signals import setup_logging
 from backend.config.paths import (
     ARTIFACTS_AI_CSV_FILE,
     MODEL_ONNX_FILE,
+    REDIS_URL,
     RESULTS_DIR,
     get_thread_filepath,
     get_tmp_thread_files,
@@ -20,9 +21,7 @@ from backend.utils.results_sender import (
     send_publish_results_by_email,
 )
 
-celery_app = Celery(
-    "tasks", broker="redis://localhost:6379", backend="redis://localhost:6379"
-)
+celery_app = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
 
 celery_app.conf.update(
     worker_hijack_root_logger=False,

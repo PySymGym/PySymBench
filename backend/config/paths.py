@@ -1,5 +1,7 @@
 import os
 
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+
 
 def get_tmp_thread_files(uid):
     return [get_thread_filepath(uid, UPLOAD_DIR), get_thread_filepath(uid, RESULTS_DIR)]
