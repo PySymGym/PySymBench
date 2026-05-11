@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, TrophyOutlined } from '@ant-design/icons';
+import { TrophyOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 
@@ -132,16 +132,7 @@ const ModelRankingPage: React.FC = () => {
               Model Ranking
             </Title>
           </Space>
-          <Space>
-            <Button onClick={() => navigate('/')}>Back to Home</Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate('/ranking/publish')}
-            >
-              Publish experiment
-            </Button>
-          </Space>
+          <Button onClick={() => navigate('/')}>Back to Home</Button>
         </div>
         <Table
           columns={columns}

@@ -15,14 +15,10 @@ from backend.config.paths import (
 from backend.db.database import Base, engine
 from backend.db.models import Experiment  # noqa: F401 — registers the table
 from backend.db.repository import get_all_experiments
-from backend.utils.data_uploader import handle_ranking_upload, handle_upload
+from backend.utils.data_uploader import handle_upload
 from backend.utils.methods_handler import Methods
 from backend.utils.results_sender import send_task_started_email
-from backend.utils.task import (
-    celery_app,
-    process_and_cleanup_task,
-    publish_and_cleanup_task,
-)
+from backend.utils.task import celery_app, process_and_cleanup_task
 from backend.utils.token_store import (
     generate_cancel_token,
     is_task_completed,
@@ -50,52 +46,11 @@ async def handle_submit(
     email: str = Form(...),
     methods: str = Form(...),
     experiment: str = Form(...),
-    file2: UploadFile | None = None,
-    comparison_mode: str = Form("baseline"),
 ):
     task_uid = str(shortuuid.uuid())
 
-    handle_upload(task_uid, file, methods, DATASET_DLLS_AND_METHODS, file2)
+    handle_upload(task_uid, file, methods, DATASET_DLLS_AND_METHODS)
     process_and_cleanup_task.apply_async(
-        args=[
-            task_uid,
-            email,
-            experiment,
-            file.filename,
-            comparison_mode,
-            file2.filename if file2 else None,
-        ],
-        task_id=task_uid,
-        queue="celery",
-    )
-
-    cancel_token = generate_cancel_token(task_uid)
-    cancel_url = f"{BASE_URL}/api/cancel/{task_uid}?token={cancel_token}"
-    background_tasks.add_task(
-        send_task_started_email, email, experiment, file.filename, cancel_url
-    )
-
-    return {
-        "task_uid": task_uid,
-        "experiment": experiment,
-        "filename": file.filename,
-        "email": email,
-        "methods": methods,
-        "message": "Data uploaded, processing started",
-    }
-
-
-@app.post("/api/ranking-upload")
-async def handle_ranking_submit(
-    background_tasks: BackgroundTasks,
-    file: UploadFile,
-    email: str = Form(...),
-    experiment: str = Form(...),
-):
-    task_uid = str(shortuuid.uuid())
-
-    handle_ranking_upload(task_uid, file)
-    publish_and_cleanup_task.apply_async(
         args=[task_uid, email, experiment, file.filename],
         task_id=task_uid,
         queue="celery",
@@ -112,6 +67,7 @@ async def handle_ranking_submit(
         "experiment": experiment,
         "filename": file.filename,
         "email": email,
+        "methods": methods,
         "message": "Data uploaded, processing started",
     }
 
@@ -217,10 +173,8 @@ async def cancel_task_by_link(task_uid: str, token: str = Query(...)):
 
 @app.post("/api/cancel/{task_uid}")
 async def cancel_task(task_uid: str):
-    # Revoke the task if still queued (prevents worker from starting it)
     celery_app.control.revoke(task_uid)
 
-    # Stop the Docker container if the task is already running
     subprocess.run(
         ["docker", "stop", f"pysymbench-{task_uid}"],
         check=False,
@@ -228,7 +182,6 @@ async def cancel_task(task_uid: str):
         timeout=30,
     )
 
-    # Clean up temp files (safe to call even if worker already cleaned up)
     for path in get_tmp_thread_files(task_uid):
         shutil.rmtree(path, ignore_errors=True)
 

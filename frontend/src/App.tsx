@@ -3,7 +3,6 @@ import HomePage from './pages/HomePage';
 import ExperimentPage from './pages/ExperimentPage';
 import ModelRankingPage from './pages/ModelRankingPage';
 import ModelInterfacePage from './pages/ModelInterfacePage';
-import PublishExperimentPage from './pages/PublishExperimentPage';
 
 function App() {
   return (
@@ -12,7 +11,6 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/experiment" element={<ExperimentPage />} />
         <Route path="/ranking" element={<ModelRankingPage />} />
-        <Route path="/ranking/publish" element={<PublishExperimentPage />} />
         <Route path="/interface" element={<ModelInterfacePage />} />
       </Routes>
     </BrowserRouter>

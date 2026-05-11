@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from backend.config.paths import (
     ARTIFACTS_AI2_CSV_FILE,
     ARTIFACTS_AI_CSV_FILE,
-    ARTIFACTS_BASELINE_CSV_FILE,
     COMPSTRAT_RESULTS_DIR,
     LAUNCH_INFO_FILE,
     MODEL2_ONNX_FILE,
@@ -176,9 +175,6 @@ class Compstrat(DockerRunner):
 def run_pipeline(uid) -> None:
     RunstratBaseline().run(uid)
     RunstratAI().run(uid)
-    Compstrat("BASELINE", ARTIFACTS_BASELINE_CSV_FILE, "AI", ARTIFACTS_AI_CSV_FILE).run(
-        uid
-    )
 
 
 def run_model_vs_model_pipeline(uid) -> None:

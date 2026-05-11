@@ -7,7 +7,6 @@ from backend.config.paths import (
     ARTIFACTS_AI_CSV_FILE,
     MODEL_ONNX_FILE,
     REDIS_URL,
-    RESULTS_DIR,
     get_thread_filepath,
     get_tmp_thread_files,
 )
@@ -15,15 +14,8 @@ from backend.db.repository import save_experiment
 from backend.file_utils.files import reset_dirs
 from backend.file_utils.runstrat_metrics import compute_metrics
 from backend.storage.minio_client import upload_file
-from backend.utils.docker_runner import (
-    run_model_vs_model_pipeline,
-    run_pipeline,
-    run_publish_pipeline,
-)
-from backend.utils.results_sender import (
-    send_folder_by_email,
-    send_publish_results_by_email,
-)
+from backend.utils.docker_runner import run_pipeline
+from backend.utils.results_sender import send_publish_results_by_email
 from backend.utils.token_store import mark_task_completed
 
 celery_app = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
@@ -53,45 +45,12 @@ def process_and_cleanup_task(
     email: str,
     experiment: str,
     filename: str,
-    comparison_mode: str = "baseline",
-    filename2: str | None = None,
-):
-    try:
-        if comparison_mode == "model":
-            run_model_vs_model_pipeline(task_uid)
-        else:
-            run_pipeline(task_uid)
-        send_folder_by_email(
-            email,
-            get_thread_filepath(task_uid, RESULTS_DIR),
-            experiment,
-            filename,
-            comparison_mode=comparison_mode,
-            model2_file_name=filename2,
-        )
-    except Exception:
-        logger.exception("Task %s failed", task_uid)
-
-    finally:
-        try:
-            mark_task_completed(task_uid)
-            reset_dirs(get_tmp_thread_files(task_uid))
-        except Exception:
-            logger.warning("Cleanup failed for %s", task_uid)
-
-
-@celery_app.task
-def publish_and_cleanup_task(
-    task_uid: str,
-    email: str,
-    experiment: str,
-    filename: str,
 ):
     model_object_key = None
     results_object_key = None
 
     try:
-        run_publish_pipeline(task_uid)
+        run_pipeline(task_uid)
 
         ai_csv_path = get_thread_filepath(task_uid, ARTIFACTS_AI_CSV_FILE)
         model_path = get_thread_filepath(task_uid, MODEL_ONNX_FILE)
@@ -116,14 +75,9 @@ def publish_and_cleanup_task(
         except Exception:
             logger.exception("DB save failed for task %s", task_uid)
 
-        send_publish_results_by_email(
-            email,
-            metrics,
-            experiment,
-            filename,
-        )
+        send_publish_results_by_email(email, metrics, experiment, filename)
     except Exception:
-        logger.exception("Publish task %s failed", task_uid)
+        logger.exception("Task %s failed", task_uid)
 
     finally:
         try:
