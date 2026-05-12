@@ -1,31 +1,30 @@
-import json
-from collections import defaultdict
+import os
+import shutil
 
 from fastapi import UploadFile
 
 from backend.config.paths import (
+    CPP_LAUNCH_INFO_FILE,
+    CSHARP_LAUNCH_INFO_FILE,
+    JAVA_LAUNCH_INFO_FILE,
     LAUNCH_INFO_FILE,
     MODEL_ONNX_FILE,
     get_thread_filepath,
 )
-from backend.file_utils.csv_methods_writer import write_launch_info_to_csv
 from backend.file_utils.files import save_upload_file
-from backend.utils.methods_handler import Methods
+
+LANGUAGE_CSVS: dict[str, str] = {
+    "csharp": CSHARP_LAUNCH_INFO_FILE,
+    "java": JAVA_LAUNCH_INFO_FILE,
+    "cpp": CPP_LAUNCH_INFO_FILE,
+}
 
 
-def handle_upload(
-    uid: str,
-    file: UploadFile,
-    methods: str,
-    dataset_dll_and_methods: defaultdict,
-) -> None:
-    launch_methods = Methods.expand_selected_items_to_methods(
-        dataset_dll_and_methods, json.loads(methods)
-    )
-
+def handle_upload(uid: str, file: UploadFile, language: str) -> None:
     save_upload_file(file, get_thread_filepath(uid, MODEL_ONNX_FILE))
 
-    write_launch_info_to_csv(
-        parsed_methods=launch_methods,
-        output_file=get_thread_filepath(uid, LAUNCH_INFO_FILE),
-    )
+    if language != "all":
+        csv_src = LANGUAGE_CSVS[language]
+        dest = get_thread_filepath(uid, LAUNCH_INFO_FILE)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copy2(csv_src, dest)

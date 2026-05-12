@@ -1,3 +1,4 @@
+import csv as csv_module
 import logging
 import os
 import shutil
@@ -5,9 +6,10 @@ import shutil
 import shortuuid
 
 from backend.config.paths import (
-    ARTIFACTS_BASELINE_CSV_FILE,
+    CPP_LAUNCH_INFO_FILE,
+    CSHARP_LAUNCH_INFO_FILE,
+    JAVA_LAUNCH_INFO_FILE,
     LAUNCH_INFO_FILE,
-    RANKING_LAUNCH_INFO_FILE,
     RESULTS_DIR,
     UPLOAD_DIR,
     get_thread_filepath,
@@ -15,11 +17,36 @@ from backend.config.paths import (
 )
 from backend.db.repository import save_experiment
 from backend.file_utils.files import reset_dirs
-from backend.file_utils.runstrat_metrics import compute_metrics
+from backend.file_utils.runstrat_metrics import (
+    RunstratMetrics,
+    combine_metrics,
+    compute_metrics,
+)
 from backend.utils.docker_runner import RunstratBaseline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+LANGUAGE_CSVS: dict[str, str] = {
+    "csharp": CSHARP_LAUNCH_INFO_FILE,
+    "java": JAVA_LAUNCH_INFO_FILE,
+    "cpp": CPP_LAUNCH_INFO_FILE,
+}
+
+
+def _baseline_csv_path(uid: str, lang: str) -> str:
+    return os.path.join(
+        get_thread_filepath(uid, RESULTS_DIR),
+        f"artifacts_run_baseline_{lang}",
+        "ExecutionTreeContributedCoverage.csv",
+    )
+
+
+def _count_methods_in_csv(csv_path: str) -> int:
+    with open(csv_path, newline="") as f:
+        reader = csv_module.reader(f)
+        next(reader, None)
+        return sum(1 for _ in reader)
 
 
 def seed_baseline():
@@ -29,31 +56,66 @@ def seed_baseline():
     os.makedirs(get_thread_filepath(uid, UPLOAD_DIR), exist_ok=True)
     os.makedirs(get_thread_filepath(uid, RESULTS_DIR), exist_ok=True)
 
-    shutil.copy(RANKING_LAUNCH_INFO_FILE, get_thread_filepath(uid, LAUNCH_INFO_FILE))
+    metrics_by_lang: dict[str, RunstratMetrics] = {}
 
     try:
-        RunstratBaseline().run(uid)
+        for lang, csv_src in LANGUAGE_CSVS.items():
+            try:
+                methods_launched = _count_methods_in_csv(csv_src)
+                if methods_launched == 0:
+                    logger.info("Skipping %s — launch CSV is empty", lang)
+                    continue
 
-        baseline_csv = get_thread_filepath(uid, ARTIFACTS_BASELINE_CSV_FILE)
-        metrics = compute_metrics(baseline_csv)
+                shutil.copy(csv_src, get_thread_filepath(uid, LAUNCH_INFO_FILE))
+                RunstratBaseline(out_suffix=f"_{lang}").run(uid)
 
-        record_id = save_experiment(
-            experiment_name="Baseline",
-            model_name="ExecutionTreeContributedCoverage",
-            email="",
-            metrics=metrics,
-            is_baseline=True,
-        )
-        logger.info("Saved baseline as experiment id=%d", record_id)
-        logger.info(
-            "mean_coverage=%.4f  median_coverage=%.4f  total_tests=%d  "
-            "total_errors=%d  time=%.2fs",
-            metrics.mean_coverage,
-            metrics.median_coverage,
-            metrics.total_tests,
-            metrics.total_errors,
-            metrics.total_time_sec,
-        )
+                metrics = compute_metrics(_baseline_csv_path(uid, lang))
+                metrics_by_lang[lang] = metrics
+
+                record_id = save_experiment(
+                    experiment_name="Baseline",
+                    model_name="ExecutionTreeContributedCoverage",
+                    email="",
+                    metrics=metrics,
+                    methods_launched=methods_launched,
+                    language=lang,
+                    is_baseline=True,
+                )
+                logger.info(
+                    "Saved %s baseline id=%d  mean=%.4f  tests=%d  errors=%d  time=%.2fs",
+                    lang,
+                    record_id,
+                    metrics.mean_coverage,
+                    metrics.total_tests,
+                    metrics.total_errors,
+                    metrics.total_time_sec,
+                )
+            except Exception:
+                logger.exception("Baseline failed for language %s", lang)
+
+        if len(metrics_by_lang) >= 1:
+            all_csvs = [_baseline_csv_path(uid, lang) for lang in metrics_by_lang]
+            combined = combine_metrics(all_csvs)
+            total_launched = sum(
+                _count_methods_in_csv(LANGUAGE_CSVS[lang]) for lang in metrics_by_lang
+            )
+            record_id = save_experiment(
+                experiment_name="Baseline",
+                model_name="ExecutionTreeContributedCoverage",
+                email="",
+                metrics=combined,
+                methods_launched=total_launched,
+                language="all",
+                is_baseline=True,
+            )
+            logger.info(
+                "Saved aggregated baseline id=%d  mean=%.4f  tests=%d  errors=%d  time=%.2fs",
+                record_id,
+                combined.mean_coverage,
+                combined.total_tests,
+                combined.total_errors,
+                combined.total_time_sec,
+            )
     finally:
         reset_dirs(get_tmp_thread_files(uid))
 

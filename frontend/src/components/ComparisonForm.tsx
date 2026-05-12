@@ -1,27 +1,41 @@
 import React, { useState } from 'react';
-import { Alert, Form, Button, Input, Typography, message } from 'antd';
+import {
+  Alert,
+  Form,
+  Button,
+  Input,
+  Typography,
+  message,
+  Radio,
+  Tooltip,
+  Space,
+} from 'antd';
 import UploadModel from './components/UploadModel';
-import MethodsSelection from './components/MethodsSelection';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+
+type Language = 'csharp' | 'java' | 'cpp' | 'all';
 
 interface FieldType {
   email: string;
   experiment: string;
 }
 
+const LANGUAGE_OPTIONS: { value: Language; label: string; available: boolean }[] = [
+  { value: 'csharp', label: 'C#', available: true },
+  { value: 'java', label: 'Java', available: false },
+  { value: 'cpp', label: 'C++', available: false },
+  { value: 'all', label: 'All', available: true },
+];
+
 const ComparisonForm: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [methods, setMethods] = useState<string[]>([]);
+  const [language, setLanguage] = useState<Language>('csharp');
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   const onFinish = async (values: FieldType) => {
     if (!file) {
       message.error('Please upload a model file first.');
-      return;
-    }
-    if (methods.length === 0) {
-      message.error('Please select at least one method.');
       return;
     }
 
@@ -31,7 +45,7 @@ const ComparisonForm: React.FC = () => {
     formData.append('file', file);
     formData.append('experiment', values.experiment);
     formData.append('email', values.email);
-    formData.append('methods', JSON.stringify(methods));
+    formData.append('language', language);
 
     try {
       const res = await fetch('http://localhost:8000/api/upload', {
@@ -76,8 +90,24 @@ const ComparisonForm: React.FC = () => {
         <UploadModel onFileChange={(f) => setFile(f?.originFileObj || null)} />
       </Form.Item>
 
-      <Form.Item label={null} style={{ textAlign: 'center' }}>
-        <MethodsSelection onChange={setMethods} />
+      <Form.Item label="Test set">
+        <Radio.Group value={language} onChange={(e) => setLanguage(e.target.value)}>
+          <Space size="middle">
+            {LANGUAGE_OPTIONS.map(({ value, label, available }) =>
+              available ? (
+                <Radio key={value} value={value}>
+                  {label}
+                </Radio>
+              ) : (
+                <Tooltip key={value} title="Coming soon">
+                  <Radio value={value} disabled>
+                    <Text type="secondary">{label}</Text>
+                  </Radio>
+                </Tooltip>
+              )
+            )}
+          </Space>
+        </Radio.Group>
       </Form.Item>
 
       <Form.Item

@@ -164,6 +164,67 @@ def send_task_started_email(
         raise
 
 
+LANGUAGE_LABELS: dict[str, str] = {
+    "csharp": "C#",
+    "java": "Java",
+    "cpp": "C++",
+}
+
+
+def send_experiment_results_by_email(
+    to_email: str,
+    metrics_by_lang: dict[str, "RunstratMetrics"],
+    experiment_name: str,
+    model_file_name: str,
+):
+    load_dotenv()
+
+    from_email = require_env("EMAIL")
+    from_password = require_env("APP_PASSWORD")
+
+    model_name = (
+        model_file_name[:-5] if model_file_name.endswith(".onnx") else model_file_name
+    )
+
+    msg = EmailMessage()
+    msg["From"] = from_email
+    msg["To"] = to_email
+    msg["Subject"] = f"Results of {experiment_name} with {model_name}"
+
+    sections = []
+    for lang, metrics in metrics_by_lang.items():
+        label = LANGUAGE_LABELS.get(lang, lang)
+        sections.append(
+            f"{label}:\n"
+            f"  Total tests:      {metrics.total_tests}\n"
+            f"  Total errors:     {metrics.total_errors}\n"
+            f"  Mean coverage:    {metrics.mean_coverage:.4f}\n"
+            f"  Median coverage:  {metrics.median_coverage:.4f}\n"
+            f"  Total time (sec): {metrics.total_time_sec:.2f}\n"
+        )
+
+    body = (
+        f"\n\n"
+        f"The symbolic execution results for experiment '{experiment_name}' "
+        f"using the model '{model_name}' are ready.\n\n" + "\n".join(sections)
+    )
+
+    msg.set_content(body)
+
+    context = ssl.create_default_context()
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=SMTP_TIMEOUT) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except (smtplib.SMTPException, TimeoutError, OSError):
+        logger.exception("Email sending failed")
+        raise
+
+
 def send_publish_results_by_email(
     to_email: str,
     metrics: RunstratMetrics,

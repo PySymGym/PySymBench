@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Space, Table, Tag, Typography } from 'antd';
+import { Button, Space, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { TrophyOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, TrophyOutlined } from '@ant-design/icons';
 
 const { Title } = Typography;
 
@@ -16,6 +16,10 @@ interface RankingEntry {
   mean_coverage: number;
   median_coverage: number;
   total_time_sec: number;
+  methods_launched: number | null;
+  methods_with_results: number | null;
+  coverage_pct: number | null;
+  language: string | null;
   is_baseline: boolean;
   model_object_key: string | null;
   results_object_key: string | null;
@@ -84,6 +88,34 @@ const columns: ColumnsType<RankingEntry> = [
     sorter: (a, b) => a.total_tests - b.total_tests,
   },
   {
+    title: (
+      <Space size={4}>
+        Methods Run
+        <Tooltip title="Methods with results / methods launched">
+          <InfoCircleOutlined style={{ color: '#8c8c8c' }} />
+        </Tooltip>
+      </Space>
+    ),
+    key: 'coverage_pct',
+    render: (_: unknown, record: RankingEntry) => {
+      if (record.coverage_pct == null) return '—';
+      const color =
+        record.coverage_pct >= 80
+          ? '#52c41a'
+          : record.coverage_pct >= 50
+            ? '#faad14'
+            : '#ff4d4f';
+      return (
+        <Tooltip
+          title={`${record.methods_with_results ?? '?'} / ${record.methods_launched ?? '?'} methods`}
+        >
+          <span style={{ color, fontWeight: 500 }}>{record.coverage_pct}%</span>
+        </Tooltip>
+      );
+    },
+    sorter: (a, b) => (a.coverage_pct ?? 0) - (b.coverage_pct ?? 0),
+  },
+  {
     title: 'Errors',
     dataIndex: 'total_errors',
     key: 'total_errors',
@@ -100,7 +132,7 @@ const columns: ColumnsType<RankingEntry> = [
     sorter: (a, b) => a.total_time_sec - b.total_time_sec,
   },
   {
-    title: 'Published',
+    title: 'Date',
     dataIndex: 'created_at',
     key: 'created_at',
     render: (v: string) => new Date(v).toLocaleDateString(),
@@ -109,22 +141,46 @@ const columns: ColumnsType<RankingEntry> = [
   },
 ];
 
+const TABS = [
+  { key: 'csharp', label: 'C#' },
+  { key: 'java', label: 'Java' },
+  { key: 'cpp', label: 'C++' },
+  { key: 'all', label: 'All Methods' },
+];
+
 const ModelRankingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState<RankingEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('csharp');
+  const [dataByTab, setDataByTab] = useState<Record<string, RankingEntry[]>>({});
+  const [loadingByTab, setLoadingByTab] = useState<Record<string, boolean>>({});
+
+  const fetchTab = useCallback(
+    (language: string) => {
+      if (dataByTab[language] !== undefined) return;
+      setLoadingByTab((prev) => ({ ...prev, [language]: true }));
+      fetch(`http://localhost:8000/api/ranking?language=${language}`)
+        .then((r) => r.json())
+        .then((rows: RankingEntry[]) =>
+          setDataByTab((prev) => ({ ...prev, [language]: rows }))
+        )
+        .catch(() => setDataByTab((prev) => ({ ...prev, [language]: [] })))
+        .finally(() => setLoadingByTab((prev) => ({ ...prev, [language]: false })));
+    },
+    [dataByTab]
+  );
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/ranking')
-      .then((r) => r.json())
-      .then((rows: RankingEntry[]) => setData(rows))
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
-  }, []);
+    fetchTab('csharp');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onTabChange = (key: string) => {
+    setActiveTab(key);
+    fetchTab(key);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <Space>
             <TrophyOutlined style={{ fontSize: 28, color: '#faad14' }} />
@@ -134,23 +190,35 @@ const ModelRankingPage: React.FC = () => {
           </Space>
           <Button onClick={() => navigate('/')}>Back to Home</Button>
         </div>
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          locale={{ emptyText: 'No experiments published yet.' }}
-          onRow={(record) =>
-            record.is_baseline
-              ? {
-                  style: {
-                    background: '#e6f4ff',
-                    borderLeft: '3px solid #1677ff',
-                  },
+
+        <Tabs
+          activeKey={activeTab}
+          onChange={onTabChange}
+          items={TABS.map(({ key, label }) => ({
+            key,
+            label,
+            children: (
+              <Table
+                columns={columns}
+                dataSource={dataByTab[key] ?? []}
+                rowKey="id"
+                loading={loadingByTab[key] ?? false}
+                pagination={false}
+                sortDirections={['ascend', 'descend']}
+                locale={{ emptyText: 'No experiments yet.' }}
+                onRow={(record) =>
+                  record.is_baseline
+                    ? {
+                        style: {
+                          background: '#e6f4ff',
+                          borderLeft: '3px solid #1677ff',
+                        },
+                      }
+                    : {}
                 }
-              : {}
-          }
+              />
+            ),
+          }))}
         />
       </div>
     </div>

@@ -6,17 +6,15 @@ from fastapi import BackgroundTasks, FastAPI, Form, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from backend.config.paths import (
-    BASE_URL,
-    FRONTEND_URL,
-    METHODS_TS_FILE,
-    get_tmp_thread_files,
-)
+from backend.config.paths import BASE_URL, FRONTEND_URL, get_tmp_thread_files
 from backend.db.database import Base, engine
 from backend.db.models import Experiment  # noqa: F401 — registers the table
-from backend.db.repository import get_all_experiments
+from backend.db.repository import (
+    get_aggregated_all_experiments,
+    get_all_experiments,
+    get_experiments_by_language,
+)
 from backend.utils.data_uploader import handle_upload
-from backend.utils.methods_handler import Methods
 from backend.utils.results_sender import send_task_started_email
 from backend.utils.task import celery_app, process_and_cleanup_task
 from backend.utils.token_store import (
@@ -24,8 +22,6 @@ from backend.utils.token_store import (
     is_task_completed,
     verify_and_consume_cancel_token,
 )
-
-DATASET_DLLS_AND_METHODS = Methods.parse_frontend_file_to_dll_methods(METHODS_TS_FILE)
 
 app = FastAPI()
 
@@ -44,14 +40,14 @@ async def handle_submit(
     background_tasks: BackgroundTasks,
     file: UploadFile,
     email: str = Form(...),
-    methods: str = Form(...),
+    language: str = Form(...),
     experiment: str = Form(...),
 ):
     task_uid = str(shortuuid.uuid())
 
-    handle_upload(task_uid, file, methods, DATASET_DLLS_AND_METHODS)
+    handle_upload(task_uid, file, language)
     process_and_cleanup_task.apply_async(
-        args=[task_uid, email, experiment, file.filename],
+        args=[task_uid, email, experiment, file.filename, language],
         task_id=task_uid,
         queue="celery",
     )
@@ -67,32 +63,48 @@ async def handle_submit(
         "experiment": experiment,
         "filename": file.filename,
         "email": email,
-        "methods": methods,
+        "language": language,
         "message": "Data uploaded, processing started",
     }
 
 
+def _experiment_to_dict(e) -> dict:
+    coverage_pct = (
+        round(e.methods_with_results / e.methods_launched * 100, 1)
+        if e.methods_launched and e.methods_with_results is not None
+        else None
+    )
+    return {
+        "id": e.id,
+        "experiment_name": e.experiment_name,
+        "model_name": e.model_name,
+        "email": e.email,
+        "total_tests": e.total_tests,
+        "total_errors": e.total_errors,
+        "mean_coverage": e.mean_coverage,
+        "median_coverage": e.median_coverage,
+        "total_time_sec": e.total_time_sec,
+        "methods_launched": e.methods_launched,
+        "methods_with_results": e.methods_with_results,
+        "coverage_pct": coverage_pct,
+        "language": e.language,
+        "is_baseline": e.is_baseline,
+        "model_object_key": e.model_object_key,
+        "results_object_key": e.results_object_key,
+        "created_at": e.created_at,
+    }
+
+
 @app.get("/api/ranking")
-async def get_ranking():
-    experiments = get_all_experiments()
-    return [
-        {
-            "id": e.id,
-            "experiment_name": e.experiment_name,
-            "model_name": e.model_name,
-            "email": e.email,
-            "total_tests": e.total_tests,
-            "total_errors": e.total_errors,
-            "mean_coverage": e.mean_coverage,
-            "median_coverage": e.median_coverage,
-            "total_time_sec": e.total_time_sec,
-            "is_baseline": e.is_baseline,
-            "model_object_key": e.model_object_key,
-            "results_object_key": e.results_object_key,
-            "created_at": e.created_at,
-        }
-        for e in experiments
-    ]
+async def get_ranking(language: str | None = None):
+    if language == "all":
+        rows = get_aggregated_all_experiments()
+        return [_experiment_to_dict(r) for r in rows]
+    if language in ("csharp", "java", "cpp"):
+        rows = get_experiments_by_language(language)
+    else:
+        rows = get_all_experiments()
+    return [_experiment_to_dict(e) for e in rows]
 
 
 @app.get("/api/status/{task_uid}")

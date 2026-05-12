@@ -50,6 +50,9 @@ class DockerRunner(ABC):
 
 
 class RunstratBaseline(DockerRunner):
+    def __init__(self, out_suffix: str = "") -> None:
+        self.out_suffix = out_suffix
+
     def _volumes(self, uid) -> list[str]:
         return [
             "-v",
@@ -68,7 +71,7 @@ class RunstratBaseline(DockerRunner):
             "-ps",
             self.WORKSPACE,
             "-sd",
-            f"{self.RUNSTRAT_RESULTS}/artifacts_run_baseline",
+            f"{self.RUNSTRAT_RESULTS}/artifacts_run_baseline{self.out_suffix}",
             "-as",
             self.MAPS_PATH,
             f"{self.RUNSTRAT_RESOURCES}/launch_info.csv",
@@ -76,6 +79,9 @@ class RunstratBaseline(DockerRunner):
 
 
 class RunstratAI(DockerRunner):
+    def __init__(self, out_suffix: str = "") -> None:
+        self.out_suffix = out_suffix
+
     def _volumes(self, uid) -> list[str]:
         return [
             "-v",
@@ -98,7 +104,7 @@ class RunstratAI(DockerRunner):
             "-ps",
             self.WORKSPACE,
             "-sd",
-            f"{self.RUNSTRAT_RESULTS}/artifacts_run_ai",
+            f"{self.RUNSTRAT_RESULTS}/artifacts_run_ai{self.out_suffix}",
             "-as",
             self.MAPS_PATH,
             f"{self.RUNSTRAT_RESOURCES}/launch_info.csv",
@@ -172,9 +178,9 @@ class Compstrat(DockerRunner):
         ]
 
 
-def run_pipeline(uid) -> None:
-    RunstratBaseline().run(uid)
-    RunstratAI().run(uid)
+def run_pipeline(uid, out_suffix: str = "") -> None:
+    RunstratBaseline(out_suffix=out_suffix).run(uid)
+    RunstratAI(out_suffix=out_suffix).run(uid)
 
 
 def run_model_vs_model_pipeline(uid) -> None:
