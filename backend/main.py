@@ -1,10 +1,14 @@
+import io
+import mimetypes
 import shutil
 import subprocess
+import zipfile
 
 import shortuuid
-from fastapi import BackgroundTasks, FastAPI, Form, Query, UploadFile
+from fastapi import BackgroundTasks, FastAPI, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
+from pydantic import BaseModel
 
 from backend.config.paths import BASE_URL, FRONTEND_URL, get_tmp_thread_files
 from backend.db.database import Base, engine
@@ -12,11 +16,17 @@ from backend.db.models import Experiment  # noqa: F401 — registers the table
 from backend.db.repository import (
     get_aggregated_all_experiments,
     get_all_experiments,
+    get_experiment_by_id,
     get_experiments_by_language,
 )
+from backend.storage.minio_client import stream_object
 from backend.utils.data_uploader import handle_upload
 from backend.utils.results_sender import send_task_started_email
-from backend.utils.task import celery_app, process_and_cleanup_task
+from backend.utils.task import (
+    celery_app,
+    process_and_cleanup_task,
+    run_ranking_comparison_task,
+)
 from backend.utils.token_store import (
     generate_cancel_token,
     is_task_completed,
@@ -180,6 +190,100 @@ async def cancel_task_by_link(task_uid: str, token: str = Query(...)):
             "Your experiment has been successfully cancelled.",
             success=True,
         )
+    )
+
+
+class CompareRequest(BaseModel):
+    exp_id_1: int
+    exp_id_2: int
+
+
+@app.post("/api/compare")
+async def start_comparison(req: CompareRequest):
+    exp1 = get_experiment_by_id(req.exp_id_1)
+    exp2 = get_experiment_by_id(req.exp_id_2)
+    if not exp1 or not exp2:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    if not exp1.results_object_key or not exp2.results_object_key:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=422,
+            detail="One or both experiments have no results stored in MinIO",
+        )
+
+    comparison_uid = str(shortuuid.uuid())
+    run_ranking_comparison_task.apply_async(
+        args=[comparison_uid, req.exp_id_1, req.exp_id_2],
+        task_id=comparison_uid,
+        queue="celery",
+    )
+    return {"comparison_uid": comparison_uid}
+
+
+@app.get("/api/compare/{comparison_uid}/status")
+async def get_comparison_status(comparison_uid: str):
+    result = celery_app.AsyncResult(comparison_uid)
+    if result.state == "SUCCESS":
+        image_keys: list[str] = result.get()
+        files = [
+            {
+                "name": key.split("/")[-1],
+                "url": f"{BASE_URL}/api/compare/{comparison_uid}/file/{key.split('/')[-1]}",
+            }
+            for key in image_keys
+        ]
+        return {"status": "SUCCESS", "files": files}
+    if result.state == "FAILURE":
+        return {"status": "FAILURE", "error": str(result.info)}
+    return {"status": result.state}
+
+
+@app.get("/api/compare/{comparison_uid}/file/{filename}")
+async def proxy_comparison_file(comparison_uid: str, filename: str):
+    object_key = f"comparisons/{comparison_uid}/{filename}"
+    try:
+        stream = stream_object(object_key)
+    except Exception:
+        raise HTTPException(status_code=404, detail="File not found") from None
+    media_type, _ = mimetypes.guess_type(filename)
+    media_type = media_type or "application/octet-stream"
+    return StreamingResponse(
+        stream,
+        media_type=media_type,
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
+@app.get("/api/compare/{comparison_uid}/files.zip")
+async def download_comparison_zip(comparison_uid: str):
+    result = celery_app.AsyncResult(comparison_uid)
+    if result.state != "SUCCESS":
+        raise HTTPException(status_code=404, detail="Comparison not ready")
+
+    image_keys: list[str] = result.get()
+    pdf_keys = [k for k in image_keys if k.lower().endswith(".pdf")]
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for key in pdf_keys:
+            fname = key.split("/")[-1]
+            obj = stream_object(key)
+            try:
+                zf.writestr(fname, obj.read())
+            finally:
+                obj.close()
+                obj.release_conn()
+    buf.seek(0)
+
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="comparison_{comparison_uid[:8]}.zip"'
+        },
     )
 
 

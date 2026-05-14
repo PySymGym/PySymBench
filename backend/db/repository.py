@@ -93,6 +93,12 @@ _DEFAULT_ORDER = [
 ]
 
 
+def get_experiment_by_id(experiment_id: int) -> ExperimentRecord | None:
+    with SessionLocal() as session:
+        row = session.query(Experiment).filter(Experiment.id == experiment_id).first()
+        return _to_record(row) if row else None
+
+
 def get_all_experiments() -> list[ExperimentRecord]:
     with SessionLocal() as session:
         rows = session.query(Experiment).order_by(*_DEFAULT_ORDER).all()

@@ -30,6 +30,21 @@ def combine_metrics(filepaths: list[str | Path]) -> RunstratMetrics:
     return _compute_from_rows(all_rows)
 
 
+def merge_csvs(src_paths: list[str | Path], dest_path: str | Path) -> None:
+    header: list[str] | None = None
+    rows: list[dict] = []
+    for path in src_paths:
+        with open(path, newline="") as f:
+            reader = csv.DictReader(f)
+            if header is None:
+                header = list(reader.fieldnames or [])
+            rows.extend(reader)
+    with open(dest_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=header or [])
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def _compute_from_rows(rows: list[dict]) -> RunstratMetrics:
     coverages = [float(r["coverage"]) for r in rows]
     return RunstratMetrics(

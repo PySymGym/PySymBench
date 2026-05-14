@@ -39,3 +39,5 @@ ARTIFACTS_BASELINE_CSV_FILE = os.path.join(
     RESULTS_DIR, "artifacts_run_baseline/ExecutionTreeContributedCoverage.csv"
 )
 MODEL2_ONNX_FILE = os.path.join(UPLOAD_DIR, "model2.onnx")
+COMPARISON_STRAT1_CSV = os.path.join(RESULTS_DIR, "strat1/AI.csv")
+COMPARISON_STRAT2_CSV = os.path.join(RESULTS_DIR, "strat2/AI.csv")

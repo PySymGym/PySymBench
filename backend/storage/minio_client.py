@@ -31,6 +31,20 @@ def upload_file(local_path: str | Path, object_key: str) -> str:
     return object_key
 
 
+def stream_object(object_key: str):
+    bucket = os.getenv("MINIO_BUCKET", "pysymbench")
+    client = _get_client()
+    return client.get_object(bucket, object_key)
+
+
+def download_file(object_key: str, local_path: str | Path) -> None:
+    bucket = os.getenv("MINIO_BUCKET", "pysymbench")
+    client = _get_client()
+    os.makedirs(os.path.dirname(str(local_path)), exist_ok=True)
+    client.fget_object(bucket, object_key, str(local_path))
+    logger.info("Downloaded minio://%s/%s → %s", bucket, object_key, local_path)
+
+
 def get_presigned_url(object_key: str, expires_hours: int = 24) -> str:
     from datetime import timedelta
 

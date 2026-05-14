@@ -1,10 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Space, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Image,
+  Modal,
+  Space,
+  Spin,
+  Table,
+  Tabs,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { InfoCircleOutlined, TrophyOutlined } from '@ant-design/icons';
+import {
+  DiffOutlined,
+  DownloadOutlined,
+  InfoCircleOutlined,
+  TrophyOutlined,
+} from '@ant-design/icons';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 interface RankingEntry {
   id: number;
@@ -26,7 +43,23 @@ interface RankingEntry {
   created_at: string;
 }
 
-const columns: ColumnsType<RankingEntry> = [
+interface CompareFile {
+  name: string;
+  url: string;
+}
+
+interface CompareModal {
+  open: boolean;
+  compUid: string | null;
+  status: 'idle' | 'running' | 'success' | 'error';
+  files: CompareFile[];
+  title: string;
+  error?: string;
+}
+
+const COMPARE_POLL_MS = 3000;
+
+const buildColumns = (): ColumnsType<RankingEntry> => [
   {
     title: 'Rank',
     key: 'rank',
@@ -148,11 +181,22 @@ const TABS = [
   { key: 'all', label: 'All Methods' },
 ];
 
+const MODAL_EMPTY: CompareModal = {
+  open: false,
+  compUid: null,
+  status: 'idle',
+  files: [],
+  title: '',
+};
+
 const ModelRankingPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('csharp');
   const [dataByTab, setDataByTab] = useState<Record<string, RankingEntry[]>>({});
   const [loadingByTab, setLoadingByTab] = useState<Record<string, boolean>>({});
+  const [selectedByTab, setSelectedByTab] = useState<Record<string, number[]>>({});
+  const [compareModal, setCompareModal] = useState<CompareModal>(MODAL_EMPTY);
+  const columns = buildColumns();
 
   const fetchTab = useCallback(
     (language: string) => {
@@ -178,6 +222,106 @@ const ModelRankingPage: React.FC = () => {
     fetchTab(key);
   };
 
+  // Polling for comparison result
+  useEffect(() => {
+    if (
+      !compareModal.open ||
+      !compareModal.compUid ||
+      compareModal.status !== 'running'
+    )
+      return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const res = await fetch(
+          `http://localhost:8000/api/compare/${compareModal.compUid}/status`
+        );
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.status === 'SUCCESS') {
+          setCompareModal((prev) => ({
+            ...prev,
+            status: 'success',
+            files: data.files as CompareFile[],
+          }));
+        } else if (data.status === 'FAILURE') {
+          setCompareModal((prev) => ({
+            ...prev,
+            status: 'error',
+            error: data.error as string,
+          }));
+        } else {
+          setTimeout(poll, COMPARE_POLL_MS);
+        }
+      } catch {
+        if (!cancelled) setTimeout(poll, COMPARE_POLL_MS);
+      }
+    };
+
+    const t = setTimeout(poll, COMPARE_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [compareModal.open, compareModal.compUid, compareModal.status]);
+
+  const handleCompare = useCallback(async () => {
+    const sel = selectedByTab[activeTab] ?? [];
+    if (sel.length !== 2) return;
+
+    const rows = dataByTab[activeTab] ?? [];
+    const [e1, e2] = sel.map((id) => rows.find((r) => r.id === id)!);
+    const title = `"${e1.experiment_name}" vs "${e2.experiment_name}"`;
+
+    setCompareModal({ open: true, compUid: null, status: 'running', files: [], title });
+
+    try {
+      const res = await fetch('http://localhost:8000/api/compare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exp_id_1: sel[0], exp_id_2: sel[1] }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setCompareModal((prev) => ({
+          ...prev,
+          status: 'error',
+          error: (err as { detail?: string }).detail ?? `HTTP ${res.status}`,
+        }));
+        return;
+      }
+      const { comparison_uid } = (await res.json()) as { comparison_uid: string };
+      setCompareModal((prev) => ({ ...prev, compUid: comparison_uid }));
+    } catch {
+      setCompareModal((prev) => ({
+        ...prev,
+        status: 'error',
+        error: 'Failed to start comparison',
+      }));
+    }
+  }, [selectedByTab, activeTab, dataByTab]);
+
+  const getRowSelection = (tab: string) => ({
+    type: 'checkbox' as const,
+    selectedRowKeys: (selectedByTab[tab] ?? []) as React.Key[],
+    onChange: (keys: React.Key[]) => {
+      if (keys.length <= 2) {
+        setSelectedByTab((prev) => ({ ...prev, [tab]: keys as number[] }));
+      }
+    },
+    getCheckboxProps: (record: RankingEntry) => {
+      const sel = selectedByTab[tab] ?? [];
+      return {
+        disabled: sel.length >= 2 && !sel.includes(record.id),
+      };
+    },
+  });
+
+  const selCount = (selectedByTab[activeTab] ?? []).length;
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -194,11 +338,28 @@ const ModelRankingPage: React.FC = () => {
         <Tabs
           activeKey={activeTab}
           onChange={onTabChange}
+          tabBarExtraContent={
+            selCount === 2 ? (
+              <Button
+                type="primary"
+                icon={<DiffOutlined />}
+                onClick={handleCompare}
+                style={{ marginRight: 8 }}
+              >
+                Compare selected
+              </Button>
+            ) : selCount === 1 ? (
+              <Text type="secondary" style={{ marginRight: 8 }}>
+                Select one more to compare
+              </Text>
+            ) : null
+          }
           items={TABS.map(({ key, label }) => ({
             key,
             label,
             children: (
               <Table
+                rowSelection={getRowSelection(key)}
                 columns={columns}
                 dataSource={dataByTab[key] ?? []}
                 rowKey="id"
@@ -221,8 +382,119 @@ const ModelRankingPage: React.FC = () => {
           }))}
         />
       </div>
+
+      <Modal
+        open={compareModal.open}
+        title={`Comparison: ${compareModal.title}`}
+        onCancel={() => setCompareModal(MODAL_EMPTY)}
+        footer={<Button onClick={() => setCompareModal(MODAL_EMPTY)}>Close</Button>}
+        width="min(1100px, 92vw)"
+        destroyOnHidden
+      >
+        <ComparisonModalBody modal={compareModal} />
+      </Modal>
     </div>
   );
+};
+
+const ComparisonModalBody: React.FC<{ modal: CompareModal }> = ({ modal }) => {
+  if (modal.status === 'running') {
+    return (
+      <div style={{ textAlign: 'center', padding: '48px 0' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16, color: '#595959' }}>
+          Running compstrat… this may take a minute.
+        </div>
+      </div>
+    );
+  }
+
+  if (modal.status === 'error') {
+    return (
+      <Alert
+        type="error"
+        description={modal.error ?? 'An unknown error occurred.'}
+        showIcon
+      />
+    );
+  }
+
+  if (modal.status === 'success') {
+    if (modal.files.length === 0) {
+      return (
+        <Alert
+          type="warning"
+          description="Compstrat finished but returned no output files."
+          showIcon
+        />
+      );
+    }
+
+    const pdfs = modal.files.filter((f) => f.name.toLowerCase().endsWith('.pdf'));
+    const imgs = modal.files.filter((f) => !f.name.toLowerCase().endsWith('.pdf'));
+    const zipUrl = `http://localhost:8000/api/compare/${modal.compUid}/files.zip`;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {pdfs.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <a href={zipUrl} download>
+                <Button type="primary" icon={<DownloadOutlined />}>
+                  Download all PDFs
+                </Button>
+              </a>
+            </div>
+            {pdfs.map((f) => (
+              <div key={f.name}>
+                <Text
+                  type="secondary"
+                  style={{ fontSize: 12, display: 'block', marginBottom: 4 }}
+                >
+                  {f.name}
+                </Text>
+                <iframe
+                  src={f.url}
+                  style={{
+                    width: '100%',
+                    height: 480,
+                    border: '1px solid #f0f0f0',
+                    borderRadius: 4,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {imgs.length > 0 && (
+          <Image.PreviewGroup>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+                gap: 16,
+              }}
+            >
+              {imgs.map((f) => (
+                <Image
+                  key={f.name}
+                  src={f.url}
+                  style={{
+                    width: '100%',
+                    borderRadius: 4,
+                    border: '1px solid #f0f0f0',
+                  }}
+                />
+              ))}
+            </div>
+          </Image.PreviewGroup>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default ModelRankingPage;

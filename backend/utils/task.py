@@ -7,6 +7,9 @@ from celery import Celery
 from celery.signals import setup_logging
 
 from backend.config.paths import (
+    COMPARISON_STRAT1_CSV,
+    COMPARISON_STRAT2_CSV,
+    COMPSTRAT_RESULTS_DIR,
     CPP_LAUNCH_INFO_FILE,
     CSHARP_LAUNCH_INFO_FILE,
     JAVA_LAUNCH_INFO_FILE,
@@ -17,15 +20,16 @@ from backend.config.paths import (
     get_thread_filepath,
     get_tmp_thread_files,
 )
-from backend.db.repository import save_experiment
+from backend.db.repository import get_experiment_by_id, save_experiment
 from backend.file_utils.files import reset_dirs
 from backend.file_utils.runstrat_metrics import (
     RunstratMetrics,
     combine_metrics,
     compute_metrics,
+    merge_csvs,
 )
-from backend.storage.minio_client import upload_file
-from backend.utils.docker_runner import run_pipeline
+from backend.storage.minio_client import download_file, upload_file
+from backend.utils.docker_runner import Compstrat, run_pipeline
 from backend.utils.results_sender import send_experiment_results_by_email
 from backend.utils.token_store import mark_task_completed
 
@@ -146,6 +150,22 @@ def process_and_cleanup_task(
                     for lang in langs_to_run
                     if lang in metrics_by_lang
                 )
+
+                merged_csv_path = os.path.join(
+                    get_thread_filepath(task_uid, RESULTS_DIR), "ai_all.csv"
+                )
+                merge_csvs(all_ai_csvs, merged_csv_path)
+
+                all_results_key = None
+                try:
+                    all_results_key = upload_file(
+                        merged_csv_path, f"results/{task_uid}/all/AI.csv"
+                    )
+                except Exception:
+                    logger.exception(
+                        "MinIO all-results upload failed for task %s", task_uid
+                    )
+
                 save_experiment(
                     experiment_name=experiment,
                     model_name=model_name,
@@ -154,6 +174,7 @@ def process_and_cleanup_task(
                     methods_launched=total_launched,
                     language="all",
                     model_object_key=model_object_key,
+                    results_object_key=all_results_key,
                 )
             except Exception:
                 logger.exception("Aggregated DB save failed for task %s", task_uid)
@@ -168,3 +189,51 @@ def process_and_cleanup_task(
             reset_dirs(get_tmp_thread_files(task_uid))
         except Exception:
             logger.warning("Cleanup failed for %s", task_uid)
+
+
+@celery_app.task
+def run_ranking_comparison_task(
+    comparison_uid: str,
+    exp_id_1: int,
+    exp_id_2: int,
+) -> list[str]:
+    exp1 = get_experiment_by_id(exp_id_1)
+    exp2 = get_experiment_by_id(exp_id_2)
+
+    if not exp1 or not exp2:
+        raise ValueError(f"Experiment not found: ids {exp_id_1}, {exp_id_2}")
+    if not exp1.results_object_key or not exp2.results_object_key:
+        raise ValueError("One or both experiments have no results in storage")
+
+    strat1_csv = get_thread_filepath(comparison_uid, COMPARISON_STRAT1_CSV)
+    strat2_csv = get_thread_filepath(comparison_uid, COMPARISON_STRAT2_CSV)
+    compstrat_dir = get_thread_filepath(comparison_uid, COMPSTRAT_RESULTS_DIR)
+
+    os.makedirs(os.path.dirname(strat1_csv), exist_ok=True)
+    os.makedirs(os.path.dirname(strat2_csv), exist_ok=True)
+    os.makedirs(compstrat_dir, exist_ok=True)
+
+    try:
+        download_file(exp1.results_object_key, strat1_csv)
+        download_file(exp2.results_object_key, strat2_csv)
+
+        Compstrat(
+            exp1.experiment_name,
+            COMPARISON_STRAT1_CSV,
+            exp2.experiment_name,
+            COMPARISON_STRAT2_CSV,
+        ).run(comparison_uid)
+
+        image_keys: list[str] = []
+        for fname in sorted(os.listdir(compstrat_dir)):
+            if fname.lower().endswith((".png", ".jpg", ".jpeg", ".svg", ".pdf")):
+                key = f"comparisons/{comparison_uid}/{fname}"
+                upload_file(os.path.join(compstrat_dir, fname), key)
+                image_keys.append(key)
+
+        return image_keys
+    finally:
+        try:
+            reset_dirs(get_tmp_thread_files(comparison_uid))
+        except Exception:
+            logger.warning("Cleanup failed for comparison %s", comparison_uid)
