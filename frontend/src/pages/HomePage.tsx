@@ -38,7 +38,7 @@ const CARDS = [
       'Learn about the interface specification required to integrate your model with PySymGym, including input/output formats and protocol details.',
     action: 'Read Docs',
     path: '/interface',
-    available: false,
+    available: true,
     borderColor: '#52c41a',
   },
 ] as const;
