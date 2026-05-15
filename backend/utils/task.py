@@ -232,7 +232,9 @@ def run_ranking_comparison_task(
 
         image_keys: list[str] = []
         for fname in sorted(os.listdir(compstrat_dir)):
-            if fname.lower().endswith((".png", ".jpg", ".jpeg", ".svg", ".pdf")):
+            if fname.lower().endswith(
+                (".png", ".jpg", ".jpeg", ".svg", ".pdf", ".csv")
+            ):
                 key = f"comparisons/{comparison_uid}/{fname}"
                 upload_file(os.path.join(compstrat_dir, fname), key)
                 image_keys.append(key)

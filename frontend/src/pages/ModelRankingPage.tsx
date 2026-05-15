@@ -431,11 +431,30 @@ const ComparisonModalBody: React.FC<{ modal: CompareModal }> = ({ modal }) => {
     }
 
     const pdfs = modal.files.filter((f) => f.name.toLowerCase().endsWith('.pdf'));
-    const imgs = modal.files.filter((f) => !f.name.toLowerCase().endsWith('.pdf'));
+    const csvs = modal.files.filter((f) => f.name.toLowerCase().endsWith('.csv'));
+    const imgs = modal.files.filter(
+      (f) =>
+        !f.name.toLowerCase().endsWith('.pdf') && !f.name.toLowerCase().endsWith('.csv')
+    );
     const zipUrl = `http://localhost:8000/api/compare/${modal.compUid}/files.zip`;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {csvs.length > 0 && (
+          <div>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              CSV Files
+            </Text>
+            <Space wrap>
+              {csvs.map((f) => (
+                <a key={f.name} href={f.url} download={f.name}>
+                  <Button icon={<DownloadOutlined />}>{f.name}</Button>
+                </a>
+              ))}
+            </Space>
+          </div>
+        )}
+
         {pdfs.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
