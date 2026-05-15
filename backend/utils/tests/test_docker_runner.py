@@ -15,9 +15,7 @@ from backend.utils.docker_runner import (
     RunstratAI,
     RunstratAI2,
     RunstratBaseline,
-    run_model_vs_model_pipeline,
     run_pipeline,
-    run_publish_pipeline,
 )
 
 TEST_RESOURCES_DIR = BASE_DIR + "/utils/tests/resources/"
@@ -84,52 +82,14 @@ def test_compstrat_model_vs_model(test_env):
     )
 
 
-def test_run_pipeline_calls_all_runners_in_order():
-    uid = "test"
-    call_order = []
-
-    with (
-        patch.object(
-            RunstratBaseline, "run", side_effect=lambda u: call_order.append("baseline")
-        ),
-        patch.object(RunstratAI, "run", side_effect=lambda u: call_order.append("ai")),
-        patch.object(
-            Compstrat, "run", side_effect=lambda u: call_order.append("compstrat")
-        ),
-    ):
-        run_pipeline(uid)
-
-    assert call_order == ["baseline", "ai", "compstrat"]
-
-
-def test_run_model_vs_model_pipeline_calls_in_order():
-    uid = "test"
-    call_order = []
-
-    with (
-        patch.object(RunstratAI, "run", side_effect=lambda u: call_order.append("ai")),
-        patch.object(
-            RunstratAI2, "run", side_effect=lambda u: call_order.append("ai2")
-        ),
-        patch.object(
-            Compstrat, "run", side_effect=lambda u: call_order.append("compstrat")
-        ),
-        patch.object(RunstratBaseline, "run") as mock_baseline,
-    ):
-        run_model_vs_model_pipeline(uid)
-
-    assert call_order == ["ai", "ai2", "compstrat"]
-    mock_baseline.assert_not_called()
-
-
-def test_run_publish_pipeline_calls_only_runstrat_ai():
+def test_run_pipeline_calls_runstrat_ai():
     uid = "test"
     with (
         patch.object(RunstratAI, "run") as mock_ai,
         patch.object(RunstratBaseline, "run") as mock_baseline,
         patch.object(Compstrat, "run") as mock_compstrat,
     ):
-        run_publish_pipeline(uid)
+        run_pipeline(uid)
 
     mock_ai.assert_called_once_with(uid)
     mock_baseline.assert_not_called()

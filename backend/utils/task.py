@@ -179,7 +179,13 @@ def process_and_cleanup_task(
             except Exception:
                 logger.exception("Aggregated DB save failed for task %s", task_uid)
 
-        send_experiment_results_by_email(email, metrics_by_lang, experiment, filename)
+        send_experiment_results_by_email(
+            email,
+            metrics_by_lang,
+            experiment,
+            filename,
+            results_folder=get_thread_filepath(task_uid, RESULTS_DIR),
+        )
     except Exception:
         logger.exception("Task %s failed", task_uid)
 

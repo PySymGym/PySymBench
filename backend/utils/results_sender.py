@@ -176,6 +176,7 @@ def send_experiment_results_by_email(
     metrics_by_lang: dict[str, "RunstratMetrics"],
     experiment_name: str,
     model_file_name: str,
+    results_folder: str | None = None,
 ):
     load_dotenv()
 
@@ -211,6 +212,23 @@ def send_experiment_results_by_email(
 
     msg.set_content(body)
 
+    zip_path = None
+    if results_folder:
+        folder = Path(results_folder)
+        if folder.exists():
+            zip_path = folder.with_suffix(".zip")
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+                for file in folder.rglob("*"):
+                    if file.is_file():
+                        zipf.write(file, file.relative_to(folder))
+            with open(zip_path, "rb") as f:
+                msg.add_attachment(
+                    f.read(),
+                    maintype="application",
+                    subtype="zip",
+                    filename="runstrat_results.zip",
+                )
+
     context = ssl.create_default_context()
 
     try:
@@ -223,6 +241,9 @@ def send_experiment_results_by_email(
     except (smtplib.SMTPException, TimeoutError, OSError):
         logger.exception("Email sending failed")
         raise
+    finally:
+        if zip_path and zip_path.exists():
+            os.remove(zip_path)
 
 
 def send_publish_results_by_email(

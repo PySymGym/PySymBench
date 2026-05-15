@@ -2,8 +2,6 @@ import subprocess
 from abc import ABC, abstractmethod
 
 from backend.config.paths import (
-    ARTIFACTS_AI2_CSV_FILE,
-    ARTIFACTS_AI_CSV_FILE,
     COMPSTRAT_RESULTS_DIR,
     LAUNCH_INFO_FILE,
     MODEL2_ONNX_FILE,
@@ -179,17 +177,4 @@ class Compstrat(DockerRunner):
 
 
 def run_pipeline(uid, out_suffix: str = "") -> None:
-    RunstratBaseline(out_suffix=out_suffix).run(uid)
     RunstratAI(out_suffix=out_suffix).run(uid)
-
-
-def run_model_vs_model_pipeline(uid) -> None:
-    RunstratAI().run(uid)
-    RunstratAI2().run(uid)
-    Compstrat("MODEL1", ARTIFACTS_AI_CSV_FILE, "MODEL2", ARTIFACTS_AI2_CSV_FILE).run(
-        uid
-    )
-
-
-def run_publish_pipeline(uid) -> None:
-    RunstratAI().run(uid)

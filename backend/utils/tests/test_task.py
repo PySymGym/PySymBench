@@ -22,20 +22,16 @@ FAKE_METRICS = RunstratMetrics(
 @pytest.fixture
 def mock_task_deps(monkeypatch):
     mock_run = MagicMock()
-    mock_run_m2m = MagicMock()
     mock_send = MagicMock()
     mock_reset = MagicMock()
     mock_get_files = MagicMock(return_value=["/tmp/fake/uploads", "/tmp/fake/results"])
 
     monkeypatch.setattr(task_module, "run_pipeline", mock_run)
-    monkeypatch.setattr(task_module, "run_model_vs_model_pipeline", mock_run_m2m)
-    monkeypatch.setattr(task_module, "send_folder_by_email", mock_send)
     monkeypatch.setattr(task_module, "reset_dirs", mock_reset)
     monkeypatch.setattr(task_module, "get_tmp_thread_files", mock_get_files)
 
     return {
         "run_pipeline": mock_run,
-        "run_model_vs_model_pipeline": mock_run_m2m,
         "send_email": mock_send,
         "reset_dirs": mock_reset,
         "get_tmp_thread_files": mock_get_files,
@@ -67,101 +63,3 @@ def test_task_sends_email_on_success(mock_task_deps):
 def test_task_cleanup_receives_correct_uid(mock_task_deps):
     task_module.process_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
     mock_task_deps["get_tmp_thread_files"].assert_called_once_with(TASK_UID)
-
-
-def test_task_uses_baseline_pipeline_by_default(mock_task_deps):
-    task_module.process_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_task_deps["run_pipeline"].assert_called_once_with(TASK_UID)
-    mock_task_deps["run_model_vs_model_pipeline"].assert_not_called()
-
-
-def test_task_uses_model_vs_model_pipeline(mock_task_deps):
-    task_module.process_and_cleanup_task.run(
-        TASK_UID, "a@b.com", "exp", "model.onnx", "model", "model2.onnx"
-    )
-    mock_task_deps["run_model_vs_model_pipeline"].assert_called_once_with(TASK_UID)
-    mock_task_deps["run_pipeline"].assert_not_called()
-
-
-def test_task_sends_email_with_comparison_mode_and_filename2(mock_task_deps):
-    task_module.process_and_cleanup_task.run(
-        TASK_UID, "a@b.com", "exp", "model.onnx", "model", "model2.onnx"
-    )
-    _, kwargs = mock_task_deps["send_email"].call_args
-    assert kwargs["comparison_mode"] == "model"
-    assert kwargs["model2_file_name"] == "model2.onnx"
-
-
-def test_task_sends_baseline_mode_in_email_by_default(mock_task_deps):
-    task_module.process_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    _, kwargs = mock_task_deps["send_email"].call_args
-    assert kwargs["comparison_mode"] == "baseline"
-    assert kwargs["model2_file_name"] is None
-
-
-@pytest.fixture
-def mock_publish_deps(monkeypatch):
-    mock_run = MagicMock()
-    mock_metrics = MagicMock(return_value=FAKE_METRICS)
-    mock_send = MagicMock()
-    mock_reset = MagicMock()
-    mock_get_files = MagicMock(return_value=["/tmp/fake/uploads", "/tmp/fake/results"])
-
-    monkeypatch.setattr(task_module, "run_publish_pipeline", mock_run)
-    monkeypatch.setattr(task_module, "compute_metrics", mock_metrics)
-    monkeypatch.setattr(task_module, "send_publish_results_by_email", mock_send)
-    monkeypatch.setattr(task_module, "reset_dirs", mock_reset)
-    monkeypatch.setattr(task_module, "get_tmp_thread_files", mock_get_files)
-
-    return {
-        "run_publish_pipeline": mock_run,
-        "compute_metrics": mock_metrics,
-        "send_email": mock_send,
-        "reset_dirs": mock_reset,
-        "get_tmp_thread_files": mock_get_files,
-    }
-
-
-def test_publish_task_cleanup_runs_on_success(mock_publish_deps):
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["reset_dirs"].assert_called_once()
-
-
-def test_publish_task_cleanup_runs_on_pipeline_failure(mock_publish_deps):
-    mock_publish_deps["run_publish_pipeline"].side_effect = RuntimeError("docker died")
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["reset_dirs"].assert_called_once()
-
-
-def test_publish_task_no_email_on_pipeline_failure(mock_publish_deps):
-    mock_publish_deps["run_publish_pipeline"].side_effect = RuntimeError("docker died")
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["send_email"].assert_not_called()
-
-
-def test_publish_task_no_email_on_metrics_failure(mock_publish_deps):
-    mock_publish_deps["compute_metrics"].side_effect = FileNotFoundError("no csv")
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["send_email"].assert_not_called()
-
-
-def test_publish_task_cleanup_runs_on_metrics_failure(mock_publish_deps):
-    mock_publish_deps["compute_metrics"].side_effect = FileNotFoundError("no csv")
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["reset_dirs"].assert_called_once()
-
-
-def test_publish_task_sends_email_on_success(mock_publish_deps):
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["send_email"].assert_called_once()
-
-
-def test_publish_task_sends_metrics_in_email(mock_publish_deps):
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    args, _ = mock_publish_deps["send_email"].call_args
-    assert args[1] == FAKE_METRICS
-
-
-def test_publish_task_cleanup_receives_correct_uid(mock_publish_deps):
-    task_module.publish_and_cleanup_task.run(TASK_UID, "a@b.com", "exp", "model.onnx")
-    mock_publish_deps["get_tmp_thread_files"].assert_called_once_with(TASK_UID)
