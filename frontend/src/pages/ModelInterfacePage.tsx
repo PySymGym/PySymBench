@@ -18,6 +18,11 @@ interface OutputRow {
   shape: string;
 }
 
+interface DimRow {
+  symbol: string;
+  meaning: string;
+}
+
 const INPUT_COLUMNS: ColumnsType<InputRow> = [
   {
     title: 'Name',
@@ -31,7 +36,18 @@ const INPUT_COLUMNS: ColumnsType<InputRow> = [
     key: 'type',
     render: (v: string) => <Tag color={v === 'float32' ? 'blue' : 'purple'}>{v}</Tag>,
   },
-  { title: 'Shape', dataIndex: 'shape', key: 'shape' },
+  {
+    title: (
+      <a
+        href="#shape-notation"
+        style={{ color: 'inherit', textDecoration: 'underline dotted' }}
+      >
+        Shape
+      </a>
+    ),
+    dataIndex: 'shape',
+    key: 'shape',
+  },
 ];
 
 const OUTPUT_COLUMNS: ColumnsType<OutputRow> = INPUT_COLUMNS;
@@ -67,6 +83,29 @@ const PIPELINE_STEPS = [
   'Score All States',
   'Select Best State',
   'Continue Symbolic Execution',
+];
+
+const DIM_COLUMNS: ColumnsType<DimRow> = [
+  {
+    title: 'Symbol',
+    dataIndex: 'symbol',
+    key: 'symbol',
+    width: 160,
+    render: (v: string) => <Text code>{v}</Text>,
+  },
+  { title: 'Meaning', dataIndex: 'meaning', key: 'meaning' },
+];
+
+const DIMS: DimRow[] = [
+  { symbol: 'N_gv', meaning: 'Number of CFG vertices (game_vertex)' },
+  { symbol: 'N_sv', meaning: 'Number of state vertices' },
+  { symbol: 'N_pc', meaning: 'Number of path-condition vertices' },
+  { symbol: 'E_cfg', meaning: 'Number of CFG edges' },
+  { symbol: 'E_hist', meaning: 'Number of history edges' },
+  { symbol: 'E_pos', meaning: 'Number of position edges' },
+  { symbol: 'E_parent', meaning: 'Number of parent-child edges' },
+  { symbol: 'E_pc', meaning: 'Number of edges inside path condition' },
+  { symbol: 'E_pc_state', meaning: 'Number of path-condition → state edges' },
 ];
 
 const SPEC_URL =
@@ -161,6 +200,24 @@ const ModelInterfacePage: React.FC = () => {
             columns={OUTPUT_COLUMNS}
             dataSource={OUTPUTS}
             rowKey="name"
+            pagination={false}
+            size="small"
+          />
+        </section>
+
+        {/* Shape notation */}
+        <section id="shape-notation" className="mb-10">
+          <Title level={4}>Shape Notation</Title>
+          <Paragraph style={{ fontSize: 15, lineHeight: 1.9, color: '#374151' }}>
+            Each shape like <Text code>[N, F]</Text> describes a tensor dimension: the
+            first axis is the number of objects and the second is the number of features
+            per object. Because the graph size varies between calls, fixed numbers are
+            replaced with the following symbols:
+          </Paragraph>
+          <Table
+            columns={DIM_COLUMNS}
+            dataSource={DIMS}
+            rowKey="symbol"
             pagination={false}
             size="small"
           />
