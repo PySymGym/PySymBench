@@ -30,7 +30,10 @@ from backend.file_utils.runstrat_metrics import (
 )
 from backend.storage.minio_client import download_file, upload_file
 from backend.utils.docker_runner import Compstrat, run_pipeline
-from backend.utils.results_sender import send_experiment_results_by_email
+from backend.utils.results_sender import (
+    send_experiment_results_by_email,
+    send_task_failed_email,
+)
 from backend.utils.token_store import mark_task_completed
 
 celery_app = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
@@ -86,98 +89,63 @@ def process_and_cleanup_task(
     metrics_by_lang: dict[str, RunstratMetrics] = {}
 
     try:
-        model_object_key = None
-        try:
-            model_object_key = upload_file(model_path, f"models/{task_uid}/model.onnx")
-        except Exception:
-            logger.exception("MinIO model upload failed for task %s", task_uid)
+        model_object_key = upload_file(model_path, f"models/{task_uid}/model.onnx")
 
         for lang in langs_to_run:
-            try:
-                csv_src = LANGUAGE_CSVS[lang]
-                dest = get_thread_filepath(task_uid, LAUNCH_INFO_FILE)
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                shutil.copy2(csv_src, dest)
+            csv_src = LANGUAGE_CSVS[lang]
+            dest = get_thread_filepath(task_uid, LAUNCH_INFO_FILE)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            shutil.copy2(csv_src, dest)
 
-                methods_launched = _count_methods_in_csv(csv_src)
-                suffix = f"_{lang}"
-                run_pipeline(task_uid, out_suffix=suffix)
+            methods_launched = _count_methods_in_csv(csv_src)
+            suffix = f"_{lang}"
+            run_pipeline(task_uid, out_suffix=suffix)
 
-                ai_csv = _ai_csv_path(task_uid, suffix)
-                metrics = compute_metrics(ai_csv)
-                metrics_by_lang[lang] = metrics
+            ai_csv = _ai_csv_path(task_uid, suffix)
+            metrics = compute_metrics(ai_csv)
+            metrics_by_lang[lang] = metrics
 
-                results_object_key = None
-                try:
-                    results_object_key = upload_file(
-                        ai_csv, f"results/{task_uid}/{lang}/AI.csv"
-                    )
-                except Exception:
-                    logger.exception(
-                        "MinIO results upload failed for task %s lang %s",
-                        task_uid,
-                        lang,
-                    )
+            results_object_key = upload_file(
+                ai_csv, f"results/{task_uid}/{lang}/AI.csv"
+            )
 
-                try:
-                    save_experiment(
-                        experiment_name=experiment,
-                        model_name=model_name,
-                        email=email,
-                        metrics=metrics,
-                        methods_launched=methods_launched,
-                        language=lang,
-                        model_object_key=model_object_key,
-                        results_object_key=results_object_key,
-                    )
-                except Exception:
-                    logger.exception(
-                        "DB save failed for task %s lang %s", task_uid, lang
-                    )
-            except Exception:
-                logger.exception("Pipeline failed for task %s lang %s", task_uid, lang)
+            save_experiment(
+                experiment_name=experiment,
+                model_name=model_name,
+                email=email,
+                metrics=metrics,
+                methods_launched=methods_launched,
+                language=lang,
+                model_object_key=model_object_key,
+                results_object_key=results_object_key,
+            )
 
-        if language == "all" and len(metrics_by_lang) >= 1:
-            all_ai_csvs = [
-                _ai_csv_path(task_uid, f"_{lang}")
-                for lang in langs_to_run
-                if lang in metrics_by_lang
-            ]
-            try:
-                combined = combine_metrics(all_ai_csvs)
-                total_launched = sum(
-                    _count_methods_in_csv(LANGUAGE_CSVS[lang])
-                    for lang in langs_to_run
-                    if lang in metrics_by_lang
-                )
+        if language == "all":
+            all_ai_csvs = [_ai_csv_path(task_uid, f"_{lang}") for lang in langs_to_run]
+            combined = combine_metrics(all_ai_csvs)
+            total_launched = sum(
+                _count_methods_in_csv(LANGUAGE_CSVS[lang]) for lang in langs_to_run
+            )
 
-                merged_csv_path = os.path.join(
-                    get_thread_filepath(task_uid, RESULTS_DIR), "ai_all.csv"
-                )
-                merge_csvs(all_ai_csvs, merged_csv_path)
+            merged_csv_path = os.path.join(
+                get_thread_filepath(task_uid, RESULTS_DIR), "ai_all.csv"
+            )
+            merge_csvs(all_ai_csvs, merged_csv_path)
 
-                all_results_key = None
-                try:
-                    all_results_key = upload_file(
-                        merged_csv_path, f"results/{task_uid}/all/AI.csv"
-                    )
-                except Exception:
-                    logger.exception(
-                        "MinIO all-results upload failed for task %s", task_uid
-                    )
+            all_results_key = upload_file(
+                merged_csv_path, f"results/{task_uid}/all/AI.csv"
+            )
 
-                save_experiment(
-                    experiment_name=experiment,
-                    model_name=model_name,
-                    email=email,
-                    metrics=combined,
-                    methods_launched=total_launched,
-                    language="all",
-                    model_object_key=model_object_key,
-                    results_object_key=all_results_key,
-                )
-            except Exception:
-                logger.exception("Aggregated DB save failed for task %s", task_uid)
+            save_experiment(
+                experiment_name=experiment,
+                model_name=model_name,
+                email=email,
+                metrics=combined,
+                methods_launched=total_launched,
+                language="all",
+                model_object_key=model_object_key,
+                results_object_key=all_results_key,
+            )
 
         send_experiment_results_by_email(
             email,
@@ -188,6 +156,12 @@ def process_and_cleanup_task(
         )
     except Exception:
         logger.exception("Task %s failed", task_uid)
+        try:
+            send_task_failed_email(email, experiment, filename)
+        except Exception:
+            logger.exception(
+                "Failed to send failure notification for task %s", task_uid
+            )
 
     finally:
         try:

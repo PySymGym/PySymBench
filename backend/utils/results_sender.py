@@ -246,6 +246,47 @@ def send_experiment_results_by_email(
             os.remove(zip_path)
 
 
+def send_task_failed_email(
+    to_email: str,
+    experiment_name: str,
+    model_file_name: str,
+):
+    load_dotenv()
+
+    from_email = require_env("EMAIL")
+    from_password = require_env("APP_PASSWORD")
+
+    model_name = (
+        model_file_name[:-5] if model_file_name.endswith(".onnx") else model_file_name
+    )
+
+    msg = EmailMessage()
+    msg["From"] = from_email
+    msg["To"] = to_email
+    msg["Subject"] = f"Experiment '{experiment_name}' failed — please retry"
+
+    body = (
+        f"\n\n"
+        f"An error occurred while running the experiment '{experiment_name}' "
+        f"with model '{model_name}'.\n\n"
+        f"Please retry your experiment. If the problem persists, contact support.\n"
+    )
+
+    msg.set_content(body)
+
+    context = ssl.create_default_context()
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=SMTP_TIMEOUT) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(from_email, from_password)
+            server.send_message(msg)
+    except (smtplib.SMTPException, TimeoutError, OSError):
+        logger.exception("Failed to send failure notification email")
+
+
 def send_publish_results_by_email(
     to_email: str,
     metrics: RunstratMetrics,

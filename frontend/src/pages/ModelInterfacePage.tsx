@@ -224,7 +224,7 @@ const ModelInterfacePage: React.FC = () => {
         </section>
 
         {/* Spec link */}
-        <section>
+        <section className="mb-10">
           <Title level={4}>Specification</Title>
           <Paragraph style={{ fontSize: 15, lineHeight: 1.9, color: '#374151' }}>
             The authoritative interface definition (inputs, outputs, and graph
@@ -233,6 +233,21 @@ const ModelInterfacePage: React.FC = () => {
           <a href={SPEC_URL} target="_blank" rel="noreferrer">
             <Button icon={<LinkOutlined />} type="default">
               AISearcher.fs on GitHub
+            </Button>
+          </a>
+        </section>
+
+        {/* Graph description */}
+        <section>
+          <Title level={4}>Graph Structure</Title>
+          <Paragraph style={{ fontSize: 15, lineHeight: 1.9, color: '#374151' }}>
+            A detailed description of the graph representation of the symbolic machine
+            configuration — vertex types, edge semantics, and attributes — is available
+            in the reference document:
+          </Paragraph>
+          <a href="/graph_description.pdf" target="_blank" rel="noreferrer">
+            <Button icon={<LinkOutlined />} type="default">
+              Graph Representation of Symbolic Execution (PDF)
             </Button>
           </a>
         </section>

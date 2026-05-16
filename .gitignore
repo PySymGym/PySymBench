@@ -225,3 +225,6 @@ backend/resources/dataset.json
 
 # Pre-commit
 .pre-commit-config.local
+
+# Memory benchmark scripts, inputs and results
+mem_benchmark/
