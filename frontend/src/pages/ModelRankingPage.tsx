@@ -215,7 +215,7 @@ const ModelRankingPage: React.FC = () => {
 
   useEffect(() => {
     fetchTab('csharp');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const onTabChange = (key: string) => {
     setActiveTab(key);
