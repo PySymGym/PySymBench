@@ -2,16 +2,17 @@
 
 Infrastructure for **AI model comparison and evaluation in symbolic execution workflows**.
 
-PySymBench is a **local web application** for evaluating ONNX models against a non-AI baseline symbolic execution strategy. Experiments run inside Docker using [PySymGym](https://github.com/PySymGym/PySymGym) tools on a fixed dataset; results are emailed back to the user and (when published) saved to a leaderboard.
+PySymBench is a **local web application** for running ONNX models as guiding strategies in symbolic execution. Experiments run inside Docker using [PySymGym](https://github.com/PySymGym/PySymGym) tools on a fixed test set; results are emailed back to the user and saved to a public leaderboard.
 
-Three target languages are supported for the dataset: **C#**, **Java**, and **C++**.
+The platform is designed to cover three target languages — **C#**, **Java** and **C++** — but only **C#** is available right now; Java and C++ are in development.
 
 ## Features
 
-- **Run Experiment** — upload an ONNX model, choose a target language, select methods from the dataset, and compare the model against the baseline strategy. Coverage, errors and timing are emailed to you. Each running task can be cancelled via a one-click link in the confirmation email.
-- **Model Ranking** — a leaderboard of all completed experiments per language (with an aggregated view across languages), sorted by mean coverage. Per-experiment metrics include mean/median coverage, total tests, errors, runtime, and coverage percentage.
-- **Pairwise Comparison** — pick any two experiments from the ranking and produce side-by-side comparison artifacts (PDFs) downloadable individually or as a single zip.
-- **Model Interface docs** — page that describes the ONNX input/output specification required to plug a model into PySymGym.
+- **Run Experiment** — name the experiment, upload an ONNX model, pick a test set (currently C# or the "All" mode that runs the model against every available test set), and provide an email. The experiment is launched in Docker; metrics and artifacts are emailed back when it finishes. While the task is in progress it can be cancelled via a one-click link in the confirmation email.
+- **Model Ranking** — leaderboard of all completed experiments, split into tabs by language plus an **All Methods** tab. Rows are sorted by mean coverage (with ties broken by total tests, total errors, recency and runtime); every column is also sortable in the UI. Per-experiment metrics include mean/median coverage, total tests, errors, runtime and the share of methods that produced results.
+- **All Methods mode** — a dedicated experiment mode that runs the model against every language's test set. Each per-language run produces its own leaderboard entry (with that language's metrics), and an additional aggregated entry covering all languages is shown in the **All Methods** tab.
+- **Pairwise Comparison** — select any two experiments from a ranking tab and produce side-by-side comparison artifacts (PDFs), downloadable individually or as a single zip.
+- **Model Interface docs** — page describing the ONNX input/output specification a model must satisfy to be runnable by the experiment pipeline (tensor names, shapes, graph encoding).
 
 ### Routes
 
