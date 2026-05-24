@@ -1,15 +1,19 @@
 # PySymBench
-Infrastructure for **model comparison and evaluation in symbolic execution workflows**.
 
-This project is a **local web application** designed to compare symbolic execution results of an uploaded trained model (in `.onnx` format) on a selected dataset with a **baseline symbolic execution approach (non-AI)**.
+Infrastructure for **AI model comparison and evaluation in symbolic execution workflows**.
 
-The system uses **PySymGym tools** to run symbolic execution on the dataset and evaluate the results. After execution completes, the results are sent to the **email address you provide**.
+PySymBench is a **local web application** for evaluating ONNX models against a non-AI baseline symbolic execution strategy. Experiments run inside Docker using [PySymGym](https://github.com/PySymGym/PySymGym) tools on a fixed dataset; results are emailed back to the user and (when published) saved to a leaderboard.
+
+Three target languages are supported for the dataset: **C#**, **Java**, and **C++**.
 
 ## Features
 
-- **Run Experiment** — upload an ONNX model, select test methods from the dataset, and compare it against the baseline strategy. Results (coverage, errors, timing) are delivered to your inbox.
-- **Model Ranking** — a public leaderboard of all published experiments, sorted by mean coverage. Shows per-experiment metrics: mean/median coverage, total tests, errors, and runtime.
-- **Publish Experiment** — submit a model to the ranking leaderboard. The experiment runs in Docker, computes metrics, and saves the result to the database. Supports cancellation while in progress.
+- **Run Experiment** — upload an ONNX model, choose a target language, select methods from the dataset, and compare the model against the baseline strategy. Coverage, errors and timing are emailed to you. Each running task can be cancelled via a one-click link in the confirmation email.
+- **Model Ranking** — a leaderboard of all completed experiments per language (with an aggregated view across languages), sorted by mean coverage. Per-experiment metrics include mean/median coverage, total tests, errors, runtime, and coverage percentage.
+- **Pairwise Comparison** — pick any two experiments from the ranking and produce side-by-side comparison artifacts (PDFs) downloadable individually or as a single zip.
+- **Model Interface docs** — page that describes the ONNX input/output specification required to plug a model into PySymGym.
+
+### Routes
 
 The frontend is a multi-page React SPA using `react-router-dom`:
 
@@ -17,8 +21,22 @@ The frontend is a multi-page React SPA using `react-router-dom`:
 |---|---|
 | `/` | Home — navigation hub |
 | `/experiment` | Run Experiment form |
-| `/ranking` | Model Ranking leaderboard |
-| `/ranking/publish` | Publish Experiment form |
+| `/ranking` | Model Ranking leaderboard + pairwise comparison |
+| `/interface` | Model Interface specification |
+
+### Backend API
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/upload` | Submit a new experiment (multipart: ONNX file, `email`, `language`, `experiment`) |
+| `GET` | `/api/status/{task_uid}` | Celery task state |
+| `POST` | `/api/cancel/{task_uid}` | Cancel a running experiment |
+| `GET` | `/api/cancel/{task_uid}?token=...` | One-click cancellation link sent by email |
+| `GET` | `/api/ranking?language=csharp\|java\|cpp\|all` | Leaderboard entries |
+| `POST` | `/api/compare` | Start a pairwise comparison between two experiment IDs |
+| `GET` | `/api/compare/{uid}/status` | Comparison task state and result file list |
+| `GET` | `/api/compare/{uid}/file/{name}` | Stream a single comparison artifact |
+| `GET` | `/api/compare/{uid}/files.zip` | Download all comparison PDFs as a zip |
 
 # Installation
 
@@ -35,7 +53,7 @@ EMAIL=your_email@gmail.com
 APP_PASSWORD=your_app_password
 ```
 
-`EMAIL` — your Gmail address  
+`EMAIL` — your Gmail address
 `APP_PASSWORD` — your Gmail **App Password** (not your regular account password)
 
 ---
@@ -48,7 +66,7 @@ The ranking leaderboard stores experiment results in a PostgreSQL database. Add 
 DB_URL=postgresql://user:password@localhost:5432/pysymbench
 ```
 
-The required table is created automatically on server startup. You can run a local PostgreSQL instance via Docker:
+The required tables are created automatically on server startup. You can run a local PostgreSQL instance via Docker:
 
 ```
 docker run --name postgres-pysymbench -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password \
@@ -57,9 +75,9 @@ docker run --name postgres-pysymbench -e POSTGRES_USER=user -e POSTGRES_PASSWORD
 
 ---
 
-## Object Storage (MinIO) — optional
+## Object Storage (MinIO)
 
-When publishing experiments to the ranking, the ONNX model and result artifacts can be stored in MinIO. Add the following to your `.env` file:
+Experiments store their ONNX model and result artifacts in MinIO; the pairwise comparison feature also reads artifacts from there. MinIO must be reachable — if it is not configured or unavailable, the task fails and the user is notified by email. Add the following to your `.env` file:
 
 ```
 MINIO_ENDPOINT=localhost:9000
@@ -69,7 +87,7 @@ MINIO_SECURE=false
 MINIO_BUCKET=pysymbench
 ```
 
-If not configured, artifact upload is skipped and only metrics are saved to the database. You can run a local MinIO instance via Docker:
+You can run a local MinIO instance via Docker:
 
 ```
 docker run --name minio -p 9000:9000 -p 9001:9001 \
@@ -88,6 +106,17 @@ REDIS_URL=redis://<host>:6379
 ```
 
 All services that connect to Redis — the FastAPI app and every Celery worker — must have the same `REDIS_URL`. Workers on remote machines need only the `backend/` code, Docker, and access to the shared Redis instance.
+
+---
+
+## URLs for email links
+
+Cancellation links sent by email are absolute, so the backend needs to know its own public URL and the URL of the frontend. Defaults match a local setup; override them in `.env` if the app is reachable elsewhere:
+
+```
+BASE_URL=http://localhost:8000      # base URL of the FastAPI app
+FRONTEND_URL=http://localhost:5173  # base URL of the React frontend
+```
 
 ---
 
@@ -111,10 +140,11 @@ python -m backend.launch_service.app_setup
 docker run --name redis-for-celery -p 6379:6379 -d redis
 ```
 
-4. Start the **Celery worker** and the **application server**:
+4. Start the **Celery worker** and the **application server** (in separate terminals):
 
 ```
-celery -A backend.utils.task worker --loglevel=info && uvicorn backend.main:app
+celery -A backend.utils.task worker --loglevel=info
+uvicorn backend.main:app
 ```
 
 ---
@@ -128,7 +158,6 @@ celery -A backend.utils.task worker --loglevel=info && uvicorn backend.main:app
 ```
 cd frontend
 npm install
-npm install react-router-dom @types/react-router-dom
 ```
 
 3. Start the frontend development server:
@@ -148,7 +177,34 @@ npm run build
 | Package | Purpose |
 |---|---|
 | `react-router-dom` | Client-side routing between pages |
-| `@types/react-router-dom` | TypeScript types for react-router-dom |
-| `antd` | UI component library (forms, tables, buttons) |
+| `antd` | UI component library (forms, tables, buttons, modals) |
 | `tailwindcss` | Utility-first CSS framework |
 | `vite` | Build tool and dev server |
+
+---
+
+## Development
+
+### Python
+
+```
+ruff check .          # Lint
+ruff check . --fix    # Auto-fix
+ruff format .         # Format
+pytest -v             # Run tests
+```
+
+### Frontend
+
+```
+cd frontend
+npm run lint:fix      # ESLint auto-fix
+npm run format        # Prettier format
+npm run format:check  # Check formatting without writing
+```
+
+## CI/CD
+
+GitHub Actions runs on push/PR:
+- **`linting.yml`** — ruff check + format, ESLint + Prettier
+- **`build_and_test.yml`** — builds Docker image, runs `pytest -v`
