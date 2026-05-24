@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.env
+.env.local
+.DS_Store
+package-lock.json
+yarn.lock
+eslint.config.js
+src/components/components/METHODS.ts
